@@ -64,24 +64,25 @@ export async function POST(
     const impactedGenerators = getImpactedGenerators(patchPaths);
 
     // 6. Return DraftPlan
-    const draftPlan: DraftPlan = {
-      planId: uuidv4(),
+    const plan: DraftPlan = {
+      planId: `draft-${Date.now()}`,
       proposedPatches: allPatches,
       impactedGenerators,
       conflicts: validation.conflicts,
+      warnings: validation.warnings,
       isCommittable: validation.isValid && !applyError
     };
 
     if (applyError) {
-      draftPlan.conflicts.push({
+      plan.conflicts.push({
         type: 'MISSING_DELIVERABLE_SLOT', // Reuse or add new conflict type
         message: `Patch application error: ${applyError}`,
         requiredAction: 'Review the intended operations.'
       });
-      draftPlan.isCommittable = false;
+      plan.isCommittable = false;
     }
 
-    return NextResponse.json(draftPlan);
+    return NextResponse.json(plan);
 
   } catch (error) {
     console.error('Error generating draft:', error);

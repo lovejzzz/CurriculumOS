@@ -53,6 +53,7 @@ export interface DraftPlan {
     message: string;
     requiredAction: string;
   }>;
+  warnings?: string[]; // Soft conflicts like workload issues
   isCommittable: boolean; // MUST be false if conflicts.length > 0
 }
 

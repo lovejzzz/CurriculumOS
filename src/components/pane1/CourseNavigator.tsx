@@ -11,7 +11,7 @@ export function CourseNavigator() {
 
     if (!courseModel) return null;
 
-    const triggerDirectAction = async (opName: string, payload: any) => {
+    const triggerDirectAction = async (opName: string, payload: unknown) => {
         setActing(true);
         try {
             const draftRes = await fetch(`/api/courses/${courseModel.courseId}/intents/draft`, {
@@ -54,6 +54,27 @@ export function CourseNavigator() {
                     >
                         {acting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : '+ Quiz (5%)'}
                     </button>
+                    <button
+                        onClick={async () => {
+                            setActing(true);
+                            try {
+                                const res = await fetch(`/api/courses/${courseModel.courseId}/sync/brightspace`, { method: 'POST' });
+                                if (res.ok) {
+                                    alert('Successfully synced to Brightspace!');
+                                } else {
+                                    alert('Failed to sync to Brightspace.');
+                                }
+                            } catch (e) {
+                                console.error(e);
+                            } finally {
+                                setActing(false);
+                            }
+                        }}
+                        disabled={acting}
+                        className="text-xs font-semibold px-2 py-1 bg-orange-100 border border-orange-200 text-orange-700 rounded hover:bg-orange-200 transition-colors flex items-center ml-auto"
+                    >
+                        {acting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : 'Sync to Brightspace'}
+                    </button>
                 </div>
             </div>
 
@@ -80,7 +101,43 @@ export function CourseNavigator() {
                         >
                             Assignment Pack
                         </li>
+                        <li
+                            className={`px-2 py-1.5 rounded cursor-pointer text-sm font-medium transition-colors ${activeSelection?.id === 'AssessmentQAGen' && activeSelection?.type === 'artifact' ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-zinc-100 text-zinc-700'}`}
+                            onClick={() => setActiveSelection({ type: 'artifact', id: 'AssessmentQAGen' })}
+                        >
+                            Assessment QA
+                        </li>
+                        <li
+                            className={`px-2 py-1.5 rounded cursor-pointer text-sm font-medium transition-colors ${activeSelection?.id === 'AccessibilityGen' && activeSelection?.type === 'artifact' ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-zinc-100 text-zinc-700'}`}
+                            onClick={() => setActiveSelection({ type: 'artifact', id: 'AccessibilityGen' })}
+                        >
+                            Accessible Syllabus
+                        </li>
                     </ul>
+                </section>
+
+                {/* Outcomes Coverage Matrix */}
+                <section>
+                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-2">Outcome Coverage</h3>
+                    <div className="bg-zinc-50 border border-zinc-200 rounded p-2 text-sm space-y-2">
+                        {courseModel.learningOutcomes.map(lo => {
+                            // Find any assessment that links to this outcome
+                            const isCovered = courseModel.assessments.some(a => a.linkedOutcomes.includes(lo.id));
+                            return (
+                                <div key={lo.id} className="flex items-start gap-2">
+                                    <span className={isCovered ? "text-green-500 font-bold" : "text-red-500 font-bold"}>
+                                        {isCovered ? "✓" : "⚠"}
+                                    </span>
+                                    <span className={`text-xs ${isCovered ? "text-zinc-700" : "text-red-600 font-medium"}`}>
+                                        {lo.text} {isCovered ? "" : "(Orphaned)"}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                        {courseModel.learningOutcomes.length === 0 && (
+                            <span className="text-xs text-zinc-500 italic">No outcomes defined.</span>
+                        )}
+                    </div>
                 </section>
 
                 {/* Structure Visualization */}

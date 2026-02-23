@@ -20,11 +20,15 @@ export interface DeliverableGenerator {
 import { CourseMapGen } from '../generators/CourseMapGen';
 import { WeeklyPlanGen } from '../generators/WeeklyPlanGen';
 import { AssignmentPackGen } from '../generators/AssignmentPackGen';
+import { AssessmentQAGen } from '../generators/AssessmentQAGen';
+import { AccessibilityGen } from '../generators/AccessibilityGen';
 
 export const GENERATOR_REGISTRY: DeliverableGenerator[] = [
   CourseMapGen,
   WeeklyPlanGen,
-  AssignmentPackGen
+  AssignmentPackGen,
+  AssessmentQAGen,
+  AccessibilityGen
 ];
 
 /**

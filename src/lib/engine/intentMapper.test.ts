@@ -49,7 +49,7 @@ describe('intentMapper', () => {
             linkedOutcomes: ['LO-1']
         });
         // Check that ID starts with A-
-        expect((patches[0].value as any).id).toMatch(/^A-[a-f0-9]{4}$/);
+        expect((patches[0].value as { id: string }).id).toMatch(/^A-[a-f0-9]{4}$/);
     });
 
     it('maps ADD_ASSESSMENT with weight and targetWeek correctly', () => {
@@ -65,7 +65,7 @@ describe('intentMapper', () => {
         // Check assessment patch
         expect(patches[0].op).toBe('add');
         expect(patches[0].path).toBe('/assessments/-');
-        const newId = (patches[0].value as any).id;
+        const newId = (patches[0].value as { id: string }).id;
 
         // Check grading patch
         expect(patches[1].op).toBe('add');
@@ -107,7 +107,7 @@ describe('intentMapper', () => {
         expect(patches.length).toBe(1);
         expect(patches[0].op).toBe('add');
         expect(patches[0].path).toBe('/weeks/1'); // Insert at index 1 (after W-1)
-        expect((patches[0].value as any).theme).toBe('New Theme');
+        expect((patches[0].value as { theme: string }).theme).toBe('New Theme');
     });
 
     it('maps REASSIGN_DELIVERABLE correctly', () => {

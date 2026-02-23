@@ -116,6 +116,17 @@ export function CopilotPane() {
                             </div>
                         )}
 
+                        {activeDraft.warnings && activeDraft.warnings.length > 0 && (
+                            <div className="mb-4 bg-orange-50 border border-orange-200 text-orange-800 p-3 rounded text-sm">
+                                <h4 className="font-semibold text-orange-900 mb-1 flex items-center">
+                                    <span className="mr-1">⚠️</span> Soft Warnings
+                                </h4>
+                                <ul className="list-disc pl-4 space-y-1">
+                                    {activeDraft.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                                </ul>
+                            </div>
+                        )}
+
                         <div className="flex gap-2 mt-2">
                             <button
                                 className="flex-1 bg-zinc-100 text-zinc-700 py-1.5 rounded text-sm font-medium hover:bg-zinc-200 transition-colors"
