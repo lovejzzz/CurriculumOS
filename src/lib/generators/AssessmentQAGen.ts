@@ -11,7 +11,7 @@ export const AssessmentQAGen: DeliverableGenerator = {
         '/assessments',
         '/learningOutcomes'
     ],
-    generate: async (model: CourseModel, currentVersion: number): Promise<GeneratedSectionDraft[]> => {
+    generate: async (model: CourseModel): Promise<GeneratedSectionDraft[]> => {
         const drafts: GeneratedSectionDraft[] = [];
 
         const outcomesMap = new Map(model.learningOutcomes.map(lo => [lo.id, lo.text]));

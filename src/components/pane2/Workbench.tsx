@@ -120,7 +120,7 @@ export function Workbench() {
                     } else {
                         setArtifactSections([]);
                     }
-                } catch (error) {
+                } catch {
                     console.error('Failed to fetch artifact');
                     setArtifactSections([]);
                 } finally {

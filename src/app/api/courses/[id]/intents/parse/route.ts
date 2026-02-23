@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { IntentOp } from '@/types/curriculum';
 
 const intentSchema = z.object({
   ops: z.array(
@@ -40,12 +39,8 @@ const intentSchema = z.object({
   )
 });
 
-export async function POST(
-  request: Request,
-  { params }: { params: { courseId: string } }
-) {
+export async function POST(request: Request) {
   try {
-    const { courseId } = params;
     const body = await request.json();
     const { prompt } = body as { prompt: string };
 

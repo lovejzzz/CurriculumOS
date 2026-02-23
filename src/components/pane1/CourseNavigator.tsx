@@ -4,6 +4,8 @@ import { useCurriculumStore } from '@/store/curriculumStore';
 
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { VersionHistory } from './VersionHistory';
+import { BranchSwitcher } from './BranchSwitcher';
 
 export function CourseNavigator() {
     const { courseModel, activeSelection, setActiveSelection, setActiveDraft } = useCurriculumStore();
@@ -37,6 +39,8 @@ export function CourseNavigator() {
                 <p className="text-sm text-zinc-500 mb-4">
                     {courseModel.meta.durationWeeks} Weeks • {courseModel.meta.audience}
                 </p>
+
+                <BranchSwitcher />
 
                 {/* Quick Actions / Structured Edits */}
                 <div className="flex flex-wrap gap-2">
@@ -199,6 +203,8 @@ export function CourseNavigator() {
 
                     </div>
                 </section>
+
+                <VersionHistory />
             </div>
         </div>
     );

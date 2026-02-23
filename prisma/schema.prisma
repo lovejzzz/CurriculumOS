@@ -13,13 +13,29 @@ model Course {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  branches  Branch[]
   versions  CourseVersion[]
   artifacts Artifact[]
+}
+
+model Branch {
+  id             String   @id @default(uuid())
+  courseId       String
+  name           String   // e.g., "main", "experimental"
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  course         Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  versions       CourseVersion[]
+
+  @@unique([courseId, name])
 }
 
 model CourseVersion {
   id             String   @id @default(uuid())
   courseId       String
+  branchId       String?  // Optional for backwards compatibility
   versionNumber  Int      // Incremental version number: 1, 2, 3...
   
   // SSOT Data
@@ -29,6 +45,7 @@ model CourseVersion {
   createdAt      DateTime @default(now())
 
   course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  branch         Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
   sections       ArtifactSection[] 
 }
 

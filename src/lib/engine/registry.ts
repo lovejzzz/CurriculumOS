@@ -14,7 +14,8 @@ export interface DeliverableGenerator {
   // JSON Path prefixes that trigger this generator
   dependsOnPaths: string[];
 
-  generate: (model: CourseModel, currentVersion: number) => Promise<GeneratedSectionDraft[]>;
+  // The Pure Function logic
+  generate: (model: CourseModel) => Promise<GeneratedSectionDraft[]>;
 }
 
 import { CourseMapGen } from '../generators/CourseMapGen';

@@ -11,7 +11,7 @@ export async function POST(
   try {
     const { courseId } = params;
     const body = await request.json();
-    const { plan } = body as { plan: DraftPlan };
+    const { plan, branchId } = body as { plan: DraftPlan; branchId?: string };
 
     if (!plan || !plan.proposedPatches) {
       return NextResponse.json({ error: 'Missing or invalid "plan" object' }, { status: 400 });
@@ -26,6 +26,7 @@ export async function POST(
       where: { id: courseId },
       include: {
         versions: {
+          where: branchId ? { branchId } : undefined,
           orderBy: { versionNumber: 'desc' },
           take: 1
         }
@@ -33,11 +34,12 @@ export async function POST(
     });
 
     if (!currentCourse || currentCourse.versions.length === 0) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Course or version not found' }, { status: 404 });
     }
 
     const currentModel: CourseModel = JSON.parse(currentCourse.versions[0].modelData as unknown as string);
     const currentVersionNumber = currentCourse.versions[0].versionNumber;
+    const currentBranchId = currentCourse.versions[0].branchId;
 
     // 2. Apply patches to a clone
     const clonedModel: CourseModel = JSON.parse(JSON.stringify(currentModel));
@@ -57,6 +59,7 @@ export async function POST(
       data: {
         versions: {
           create: {
+            branchId: branchId || currentBranchId,
             versionNumber: newVersionNumber,
             modelData: JSON.stringify(clonedModel),
             commitReason: `Applied plan ${plan.planId}`
@@ -79,8 +82,9 @@ export async function POST(
     // Process them synchronously for MVPs. Real implementation may use a background job.
     for (const generator of impactedGenPlugins) {
       console.log(`[Commit] Running generator: ${generator.pluginId}`);
-
-      const generatedDrafts = await generator.generate(clonedModel, newVersionNumber);
+      // Generator plugins are pure functions. They do not need to know the DB IDs.
+      // They just receive the standard CourseModel and output Draft sections.
+      const generatedDrafts = await generator.generate(clonedModel);
 
       // Ensure an Artifact exists for this plugin
       let artifact = await prisma.artifact.findFirst({

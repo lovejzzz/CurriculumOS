@@ -12,7 +12,7 @@ export const AccessibilityGen: DeliverableGenerator = {
         '/learningOutcomes',
         '/policies'
     ],
-    generate: async (model: CourseModel, currentVersion: number): Promise<GeneratedSectionDraft[]> => {
+    generate: async (model: CourseModel): Promise<GeneratedSectionDraft[]> => {
         const drafts: GeneratedSectionDraft[] = [];
 
         const prompt = `Act as an Accessibility Expert in Special Education.

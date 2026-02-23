@@ -30,7 +30,7 @@ export async function POST(
 
         // Simulate Sync
         // In production, brightspace URL and token would be fetched from env or org settings
-        const syncResult = await syncCourseToBrightspace(currentModel, 'https://brightspace.mock.edu', 'mock-token');
+        const syncResult = await syncCourseToBrightspace(currentModel);
 
         // Optionally update the Course model with a lastSyncedAt timestamp
         await prisma.course.update({

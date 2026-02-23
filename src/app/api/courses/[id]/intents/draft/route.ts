@@ -4,7 +4,6 @@ import { IntentOp, DraftPlan, CourseModel } from '@/types/curriculum';
 import { mapIntentToPatches } from '@/lib/engine/intentMapper';
 import { validateCourseModel } from '@/lib/engine/validator';
 import { getImpactedGenerators } from '@/lib/engine/registry';
-import { v4 as uuidv4 } from 'uuid';
 import * as jsonpatch from 'fast-json-patch';
 
 export async function POST(
@@ -14,7 +13,7 @@ export async function POST(
   try {
     const { courseId } = params;
     const body = await request.json();
-    const { ops } = body as { ops: IntentOp[] };
+    const { ops, branchId } = body as { ops: IntentOp[]; branchId?: string };
 
     if (!ops || !Array.isArray(ops)) {
       return NextResponse.json({ error: 'Missing or invalid "ops" array' }, { status: 400 });
@@ -25,6 +24,7 @@ export async function POST(
       where: { id: courseId },
       include: {
         versions: {
+          where: branchId ? { branchId } : undefined,
           orderBy: { versionNumber: 'desc' },
           take: 1
         }

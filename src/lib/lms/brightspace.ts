@@ -18,7 +18,7 @@ export interface BrightspaceGradeObject {
  * In a real-world scenario, this sends HTTP requests to the D2L API.
  * For MVP/Phase 3, this function acts as a serializer/mock service.
  */
-export async function syncCourseToBrightspace(model: CourseModel, brightspaceEnvUrl: string, apiToken: string) {
+export async function syncCourseToBrightspace(model: CourseModel, /* brightspaceEnvUrl: string, apiToken: string */) {
     const syncLog: string[] = [];
 
     syncLog.push(`[Brightspace Sync] Initiating sync for Course: ${model.meta.title} (ID: ${model.courseId})`);

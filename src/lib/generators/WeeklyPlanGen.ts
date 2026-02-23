@@ -11,7 +11,7 @@ export const WeeklyPlanGen: DeliverableGenerator = {
         '/weeks',
         '/assessments'
     ],
-    generate: async (model: CourseModel, currentVersion: number): Promise<GeneratedSectionDraft[]> => {
+    generate: async (model: CourseModel): Promise<GeneratedSectionDraft[]> => {
         const drafts: GeneratedSectionDraft[] = [];
 
         const assessmentsMap = new Map(model.assessments.map(a => [a.id, a]));

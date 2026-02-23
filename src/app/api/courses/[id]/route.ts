@@ -13,7 +13,6 @@ export async function GET(
       include: {
         versions: {
           orderBy: { versionNumber: 'desc' },
-          take: 1
         }
       }
     });

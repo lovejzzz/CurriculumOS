@@ -14,8 +14,8 @@ export const CourseMapGen: DeliverableGenerator = {
     '/assessments',
     '/weeks'
   ],
-  generate: async (model: CourseModel, currentVersion: number): Promise<GeneratedSectionDraft[]> => {
-    
+  generate: async (model: CourseModel): Promise<GeneratedSectionDraft[]> => {
+
     // We break the Course Map down into logical sections
     // 1. Course Information (Title, Meta)
     const infoSection = await generateSection(
