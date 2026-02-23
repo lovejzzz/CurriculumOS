@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Course {
+  id        String   @id @default(uuid())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions  CourseVersion[]
+  artifacts Artifact[]
+}
+
+model CourseVersion {
+  id             String   @id @default(uuid())
+  courseId       String
+  versionNumber  Int      // Incremental version number: 1, 2, 3...
+  
+  // SSOT Data
+  modelData      String   // Corresponds to CourseModel interface (Stored as JSON string in SQLite)
+  
+  commitReason   String?  
+  createdAt      DateTime @default(now())
+
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sections       ArtifactSection[] 
+}
+
+model Artifact {
+  id          String   @id @default(uuid())
+  courseId    String
+  type        String   // "CourseMap" | "WeeklyPlan" | "AssignmentPack" | "Rubrics"
+  title       String
+  updatedAt   DateTime @updatedAt
+
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sections    ArtifactSection[]
+}
+
+model ArtifactSection {
+  id               String   @id @default(uuid())
+  artifactId       String
+  versionId        String   
+  sectionKey       String   // Stable business ID, e.g. "A-1-rubric"
+  modelDependencies String  // Array of strings: ["/assessments/A-1"] (Stored as JSON string in SQLite)
+  
+  generatedContent String   
+  overrideContent  String?  
+  isLocked         Boolean  @default(false)
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  artifact         Artifact      @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  courseVersion    CourseVersion @relation(fields: [versionId], references: [id])
+
+  @@unique([artifactId, sectionKey]) 
+}
