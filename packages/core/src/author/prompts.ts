@@ -34,10 +34,13 @@ export function authorAUser(brief: string, retry: boolean): string {
 
 export function authorBSystem(): string {
   return [
-    'You are a subject-matter author. For ONE session you author its concepts and learning outcomes as strict JSON.',
+    'You are a subject-matter author. For ONE session you author its concepts, learning outcomes, and subject-matter kernels as strict JSON.',
     'Outcomes are measurable and verb-classified by Bloom level (Remember, Understand, Apply, Analyze, Evaluate, Create).',
     'Concepts are the teachable ideas of the session (1–3), named so a knowledge base can recognize them.',
-    'Return strict JSON: { sessionIndex, concepts:[{name}], outcomes:[{text,bloom}] }.',
+    'For each concept, author a kernel: a precise 1–2 sentence definition, ONE real student misconception (the claim students believe + the correction), and — for quantitative or procedural concepts — a short worked example (setup, 2–4 steps, answer).',
+    'RULE — no invented citations: kernels carry no references, authors, or sources. State only the subject matter itself.',
+    'RULE — non-Latin scripts: when a concept involves non-Latin-script terms (hanzi, kana, Cyrillic, Arabic…), include a romanization map for every such term (e.g. {"的": "de"}). Course content must show the real script alongside romanization.',
+    'Return strict JSON: { sessionIndex, concepts:[{name}], outcomes:[{text,bloom}], kernels:[{concept, definition, misconception:{claim,correction}, workedExample?:{setup,steps,answer}, romanization?}] }.',
   ].join('\n');
 }
 
@@ -45,6 +48,6 @@ export function authorBUser(courseTitle: string, sessionIndex: number, sessionTi
   return [
     `Course: ${courseTitle}.`,
     `Author session ${sessionIndex} titled "${sessionTitle}" as JSON.`,
-    'Give 1–3 concepts and 2–3 outcomes.',
+    'Give 1–3 concepts, 2–3 outcomes, and one kernel per concept.',
   ].join('\n');
 }

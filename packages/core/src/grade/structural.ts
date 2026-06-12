@@ -93,11 +93,29 @@ export function gradeStructural(course: Course): StructuralReport {
     }
   }
   // shingle repetition — 12 per SECTION, i.e. within a single rendered artifact
-  // (040/G4; rubrics are pure structure so identical descriptors are correct, not a defect)
+  // (040/G4; rubrics are pure structure so identical descriptors are correct).
+  // Entity NAMES (titles, concept names, ids) are verbatim identifiers that
+  // repeat legitimately (V1) — strip them first so the scan measures templated
+  // PHRASING, not honest identifier echo (trap #10: a metric that flags honest
+  // repetition is worse than no metric).
+  const identifiers = [
+    g.courseTitle,
+    ...g.sessions.map((s) => s.title),
+    ...g.concepts.map((c) => c.name),
+    ...g.assessments.map((a) => a.title),
+    ...g.readings.map((r) => r.title),
+  ]
+    .filter((t) => t && t.split(/\s+/).length >= 3)
+    .sort((a, b) => b.length - a.length); // longest first so substrings don't pre-empt
+  const stripIdentifiers = (text: string): string => {
+    let out = text;
+    for (const id of identifiers) out = out.split(id).join(' ');
+    return out;
+  };
   for (const a of rc.artifacts) {
     if (a.kind === 'rubrics') continue;
     const counts = new Map<string, number>();
-    for (const sh of shingles(artifactText(a))) counts.set(sh, (counts.get(sh) ?? 0) + 1);
+    for (const sh of shingles(stripIdentifiers(artifactText(a)))) counts.set(sh, (counts.get(sh) ?? 0) + 1);
     for (const [sh, count] of counts) {
       if (count >= 12) {
         findings.push(finding('P1', 'texture', `phrase repeated ${count}× in ${a.kind}:${a.scope} (limit 12)`, sh));

@@ -70,6 +70,24 @@ export const passBSchema = z.object({
       }),
     )
     .min(1),
+  /** Kernel CANDIDATES (founding §7: the model proposes, the cache verifies).
+   *  Used only when the genome misses the concept — a genome hit overwrites
+   *  these at link time (cache-first). Citations are deliberately absent: the
+   *  model may not invent them (K3); unverified kernels carry none. */
+  kernels: z
+    .array(
+      z.object({
+        concept: z.string().min(1), // must name a concept in this batch
+        definition: z.string().min(1),
+        misconception: z.object({ claim: z.string().min(1), correction: z.string().min(1) }),
+        workedExample: z
+          .object({ setup: z.string(), steps: z.array(z.string()).min(1), answer: z.string() })
+          .optional(),
+        /** K2: non-Latin-script terms carry romanization (term → rm). */
+        romanization: z.record(z.string(), z.string()).optional(),
+      }),
+    )
+    .default([]),
 });
 export type PassB = z.infer<typeof passBSchema>;
 

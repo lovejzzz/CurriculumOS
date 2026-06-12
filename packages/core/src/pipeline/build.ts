@@ -8,7 +8,7 @@ import type { BlockedReason, PipelineState } from '../schema/machine.ts';
 import type { ClockPort, ModelPort, RandPort } from '../ports/index.ts';
 import { ulid } from '../ports/index.ts';
 import { passASchema, passBSchema } from '../author/schema.ts';
-import { assembleSkeleton, mergePassB } from '../author/assemble.ts';
+import { assembleSkeleton, mergePassB, attachKernelCandidates } from '../author/assemble.ts';
 import { lintSkeleton } from '../author/lint.ts';
 import { parseBrief, detectWeeks } from '../author/briefParse.ts';
 import { linkStage } from '../link/index.ts';
@@ -18,6 +18,10 @@ import { verify, grade } from '../grade/index.ts';
 import { CostLedgerBuilder, BudgetExceededError, meteredModel } from './cost.ts';
 import { collectSurfaces } from '../voice/index.ts';
 import { authorASystem, authorBSystem, authorAUser, authorBUser } from '../author/prompts.ts';
+
+/** Pass B parallelism: enough to be fast, low enough to stay under provider
+ *  rate limits (a 429 storm from N-at-once is its own failure mode). */
+const AUTHOR_B_CONCURRENCY = 6;
 
 export interface BuildPorts {
   model: ModelPort;
@@ -118,35 +122,54 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
 
     if (opts.lens) skeleton.discipline = opts.lens as typeof skeleton.discipline;
     course.graph = assembleSkeleton(skeleton);
-    markProvenance(course);
 
-    // ── author Pass B (per-session concepts + outcomes), batched ──
+    // ── author Pass B (per-session concepts + outcomes + kernel candidates) ──
+    // Calls run in bounded-concurrency WAVES (parallel — the proven shape,
+    // founding §4 — without firing N requests at once and rate-limiting). A
+    // single batch that fails or returns bad shape fails THAT batch, not the
+    // build (contract §A5); results merge in session order (deterministic ids).
     const total = course.graph.sessions.length;
     emit({ state: 'author', pass: 'B', batch: { done: 0, total } });
     const ordered = [...course.graph.sessions].sort((a, b) => a.index - b.index);
     let done = 0;
-    for (const s of ordered) {
+    for (let i = 0; i < ordered.length; i += AUTHOR_B_CONCURRENCY) {
+      const wave = ordered.slice(i, i + AUTHOR_B_CONCURRENCY);
       clock.tick?.();
-      const res = await model.completeJSON({
-        purpose: 'authorB',
-        reasoning: 'low',
-        system: authorBSystem(),
-        user: authorBUser(course.graph.courseTitle, s.index, s.title),
-        payload: { sessionIndex: s.index, title: s.title },
-      });
-      ledger.add('author', res);
-      const parsed = passBSchema.safeParse(res.json);
-      if (parsed.success) mergePassB(course.graph, parsed.data);
-      done++;
-      emit({ state: 'author', pass: 'B', batch: { done, total } });
+      const settled = await Promise.allSettled(
+        wave.map((s) =>
+          model.completeJSON({
+            purpose: 'authorB',
+            reasoning: 'low',
+            system: authorBSystem(),
+            user: authorBUser(course.graph.courseTitle, s.index, s.title),
+            payload: { sessionIndex: s.index, title: s.title },
+          }),
+        ),
+      );
+      for (const outcome of settled) {
+        if (outcome.status === 'fulfilled') {
+          ledger.add('author', outcome.value);
+          const parsed = passBSchema.safeParse(outcome.value.json);
+          if (parsed.success) {
+            mergePassB(course.graph, parsed.data);
+            attachKernelCandidates(course, parsed.data); // the model proposes…
+          }
+        }
+        // a rejected batch (provider error after retries) degrades that session
+        // to its structural skeleton — loud in the receipt, never a build failure
+        done++;
+        emit({ state: 'author', pass: 'B', batch: { done, total } });
+      }
     }
     record('author', 'done');
 
-    // ── link (genome cache, $0) ──
+    // ── link (genome cache, $0) — …and the cache verifies: a genome hit
+    //    overwrites any unverified candidate (cache-first, founding §7) ──
     clock.tick?.();
     const linkSummary = linkStage(course);
     record('link', `${linkSummary.linked}/${linkSummary.total}`);
     emit({ state: 'link', detail: linkSummary });
+    markProvenance(course); // after link: concepts exist and genomeRefs are known
 
     // ── judge (prerequisite gaps + cited bridges) ──
     clock.tick?.();
@@ -211,6 +234,14 @@ function markProvenance(course: Course): void {
   for (const r of course.graph.resources) p[r.id] = { source: 'instructor' } as ProvenanceMark;
   for (const c of course.graph.concepts) {
     p[c.id] = c.genomeRef ? ({ source: 'genome', ref: c.genomeRef.conceptKey } as ProvenanceMark) : ({ source: 'compiled' } as ProvenanceMark);
+    // kernel provenance: verified cache vs unverified model candidate — the
+    // receipt names which is which (Law 6; nothing model-made poses as verified)
+    const kernel = course.overlays.kernels[c.id];
+    if (kernel) {
+      p[`kernel:${c.id}`] = c.genomeRef
+        ? ({ source: 'genome', ref: c.genomeRef.conceptKey } as ProvenanceMark)
+        : ({ source: 'voiced', model: 'authorB', contractVersion: 0 } as ProvenanceMark);
+    }
   }
 }
 

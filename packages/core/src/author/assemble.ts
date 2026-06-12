@@ -7,7 +7,9 @@ import type {
   AssessmentId,
   Concept,
   ConceptId,
+  Course,
   CourseGraph,
+  Kernel,
   Outcome,
   OutcomeId,
   Reading,
@@ -17,6 +19,7 @@ import type {
   Session,
   SessionId,
 } from '../schema/courseObject.ts';
+import { fnv1a } from '../util.ts';
 import type { PassA, PassB } from './schema.ts';
 
 function sid(i: number): SessionId {
@@ -146,6 +149,39 @@ export function mergePassB(graph: CourseGraph, batch: PassB): void {
     const outcome: Outcome = { id, sessionId: session.id, text: o.text, bloom: o.bloom };
     graph.outcomes.push(outcome);
     session.outcomeIds.push(id);
+  }
+}
+
+/**
+ * Attach Pass B kernel CANDIDATES to the overlays (founding §7: the model
+ * proposes; the cache verifies). Runs BEFORE the link stage, which overwrites
+ * any candidate whose concept the genome covers (cache-first — verified
+ * knowledge always wins). Candidates carry NO citations: the model may not
+ * invent them (K3), and an unverified kernel that claims none is honest.
+ */
+export function attachKernelCandidates(course: Course, batch: PassB): void {
+  const g = course.graph;
+  for (const k of batch.kernels) {
+    const concept = g.concepts.find((c) => c.name.toLowerCase() === k.concept.toLowerCase());
+    if (!concept) continue; // candidate names an unknown concept — drop, batch stays valid (A5 spirit)
+    if (course.overlays.kernels[concept.id]) continue; // an earlier batch already proposed
+    const outcomeHash = fnv1a(
+      g.outcomes
+        .filter((o) => concept.sessionIds.includes(o.sessionId))
+        .map((o) => o.text)
+        .join('|'),
+    );
+    const kernel: Kernel = {
+      conceptId: concept.id,
+      definition: k.definition,
+      misconceptions: [k.misconception],
+      ...(k.workedExample ? { workedExample: k.workedExample } : {}),
+      citations: [], // K3: unverified candidates carry no citations, ever
+      sourceCue: 'the assigned course materials',
+      ...(k.romanization && Object.keys(k.romanization).length ? { romanization: k.romanization } : {}),
+      basedOn: { outcomeHash, titleHash: fnv1a(concept.name) },
+    };
+    course.overlays.kernels[concept.id] = kernel;
   }
 }
 

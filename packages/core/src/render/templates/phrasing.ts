@@ -75,6 +75,37 @@ export const GUIDE_LEADS = [
   'The work of this session centers on',
 ];
 
+/** MC question stems rotate so an exam's items don't all open identically
+ *  (trap #9). `%s` = concept name. */
+export const MC_QUESTION_FRAMES = [
+  'Which statement about %s is most accurate?',
+  'Which of the following best describes %s?',
+  'Regarding %s, which statement holds?',
+  'What is true of %s?',
+  'Which option correctly characterizes %s?',
+  'Concerning %s, which is correct?',
+];
+
+/** Distractor frames — wrong-answer options rotate so no fixed string is
+ *  stamped on every MC item (the texture rule, trap #9). `%s` = concept name. */
+export const DISTRACTOR_UNRELATED = [
+  'An unrelated property of %s',
+  'A side effect sometimes confused with %s',
+  'A neighboring idea that does not define %s',
+  'A surface feature mistaken for %s',
+  'A consequence rather than the meaning of %s',
+  'A related term that is not %s itself',
+];
+
+export const DISTRACTOR_OTHER = [
+  'A definition borrowed from a different concept',
+  'A statement that belongs to another topic',
+  'A claim true elsewhere but not here',
+  'A definition from a later session',
+  'A description of a different mechanism',
+  'A rule that applies to a different case',
+];
+
 export const DISCUSSION_FRAMES = [
   'This week we turn the conversation toward',
   'Use the board to think together about',

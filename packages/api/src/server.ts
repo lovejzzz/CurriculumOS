@@ -20,7 +20,7 @@ import {
 } from '@curriculumos/core';
 import { FileStorage, SystemClock, CryptoRand } from './store.ts';
 import { modelFromEnv } from './models/index.ts';
-import { ProviderError } from './models/openai.ts';
+import { ProviderError, redact } from './models/openai.ts';
 import { ApiError } from './errors.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -87,24 +87,39 @@ async function handleBuild(req: IncomingMessage, res: ServerResponse): Promise<v
   res.writeHead(202, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
   const frame = (event: string, data: unknown) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
+  // Past this point headers are sent — sendError (which writeHead's again) would
+  // crash. Any failure here ends the stream with a named blocked frame instead
+  // (Law 6: fail loud, never unnamed; the SSE contract has no JSON error path).
   let buildId = `b_pending`;
-  const outcome = await buildCourse(
-    parsed.brief,
-    { model, clock, rand },
-    {
-      voice: parsed.options?.voice,
-      budgetUsd: budget,
-      lens: parsed.options?.lens ?? null,
-      onState: (state: PipelineState, costSoFarUsd: number) => {
-        frame('state', { buildId, state, costSoFarUsd, at: clock.nowISO() });
+  try {
+    const outcome = await buildCourse(
+      parsed.brief,
+      { model, clock, rand },
+      {
+        voice: parsed.options?.voice,
+        budgetUsd: budget,
+        lens: parsed.options?.lens ?? null,
+        onState: (state: PipelineState, costSoFarUsd: number) => {
+          frame('state', { buildId, state, costSoFarUsd, at: clock.nowISO() });
+        },
       },
-    },
-  );
-  buildId = outcome.course.receipts.builds.at(-1)?.buildId ?? buildId;
-  await saveCourse(outcome.course);
-  // the terminal event carries the full Course Object (or the blocked course with named reason)
-  frame('done', { provider, ...outcome.course });
-  res.end();
+    );
+    buildId = outcome.course.receipts.builds.at(-1)?.buildId ?? buildId;
+    await saveCourse(outcome.course);
+    // the terminal event carries the full Course Object (or the blocked course with named reason)
+    frame('done', { provider, ...outcome.course });
+  } catch (err) {
+    // a build never throws (it catches into a blocked outcome); this guards a
+    // failure in saveCourse/serialization after headers are sent
+    frame('done', {
+      provider,
+      blocked: true,
+      state: { state: 'blocked', reason: 'provider-failure' },
+      message: redact(err instanceof Error ? err.message : 'build failed'),
+    });
+  } finally {
+    res.end();
+  }
 }
 
 // ── PATCH /courses/:id — apply ops, return EditResult ────────────────────────

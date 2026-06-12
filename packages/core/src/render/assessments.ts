@@ -4,7 +4,7 @@
 import type { Assessment, Concept, Course, Kernel, Session } from '../schema/courseObject.ts';
 import { rotate } from '../util.ts';
 import { LENSES } from './templates/lenses.ts';
-import { MC_CORRECT_STEMS, MC_EXPLANATION_LEADS } from './templates/phrasing.ts';
+import { MC_CORRECT_STEMS, MC_EXPLANATION_LEADS, MC_QUESTION_FRAMES, DISTRACTOR_UNRELATED, DISTRACTOR_OTHER } from './templates/phrasing.ts';
 import { readingsForSession, readingLabel, voiceBlock, rubricPoints } from './helpers.ts';
 import type { RenderBlock, RenderedArtifact } from './types.ts';
 
@@ -118,12 +118,18 @@ function mcItem(course: Course, concept: Concept, idx: number, ns: string): Rend
   const k = kernelFor(course, concept.id);
   const correct = k ? k.misconceptions[0]?.correction ?? k.definition : `${concept.name} as defined in this session.`;
   const wrong = k?.misconceptions[0]?.claim ?? `A common misunderstanding of ${concept.name}.`;
-  const options = [correct, wrong, `An unrelated property of ${concept.name}.`, `A definition from a different concept.`];
+  // distractors rotate by item index so no fixed option string repeats across a section (trap #9)
+  const options = [
+    correct,
+    wrong,
+    `${rotate(DISTRACTOR_UNRELATED, idx).replace('%s', concept.name)}.`,
+    `${rotate(DISTRACTOR_OTHER, idx + 1).replace('%s', concept.name)}.`,
+  ];
   return {
     kind: 'mc',
     entityId: concept.id,
     heading: `${ns}.${idx} (multiple choice)`,
-    text: `Which statement about ${concept.name} is most accurate?`,
+    text: rotate(MC_QUESTION_FRAMES, idx).replace('%s', concept.name),
     rows: options.map((o, i) => [String.fromCharCode(65 + i), o]),
     meta: {
       answer: 'A',

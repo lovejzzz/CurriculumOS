@@ -96,6 +96,14 @@ export function renderLessonPlan(course: Course, s: Session): RenderedArtifact {
         text: `${k.workedExample.setup}\nSteps: ${k.workedExample.steps.join(' → ')}\nAnswer: ${k.workedExample.answer}`,
       });
     }
+    if (k.romanization && Object.keys(k.romanization).length) {
+      // K2: the real script renders alongside its romanization, always
+      children.push({
+        kind: 'romanization',
+        heading: 'Terms',
+        rows: Object.entries(k.romanization).map(([term, rm]) => [term, rm]),
+      });
+    }
     blocks.push({ kind: 'kernel', entityId: c.id, heading: `Subject focus: ${c.name}`, children });
   }
 

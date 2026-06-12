@@ -148,12 +148,38 @@ function bloomCycle(i: number): PassB['outcomes'][number]['bloom'] {
 
 export function fakePassB(payload: { sessionIndex: number; title: string }): PassB {
   const topic = payload.title.replace(/…$/, '');
+  const i = payload.sessionIndex;
+  // deterministic kernel candidate (the real model authors true subject matter;
+  // the fake authors a recognizable, valid stand-in so pipelines and renders
+  // exercise the same paths)
+  const cjk = topic.match(/[㐀-鿿぀-ヿ]/g) ?? [];
+  const romanization = Object.fromEntries(cjk.map((ch, n) => [ch, `rm${n + 1}`]));
   return {
-    sessionIndex: payload.sessionIndex,
+    sessionIndex: i,
     concepts: [{ name: topic }],
     outcomes: [
-      { text: `Explain the core ideas of ${topic.toLowerCase()}.`, bloom: bloomCycle(payload.sessionIndex) },
-      { text: `Apply ${topic.toLowerCase()} to a representative problem.`, bloom: bloomCycle(payload.sessionIndex + 1) },
+      { text: `Explain the core ideas of ${topic.toLowerCase()}.`, bloom: bloomCycle(i) },
+      { text: `Apply ${topic.toLowerCase()} to a representative problem.`, bloom: bloomCycle(i + 1) },
+    ],
+    kernels: [
+      {
+        concept: topic,
+        definition: `${topic} names the session's central idea: what it is, when it applies, and how it connects to the work before and after it.`,
+        misconception: {
+          claim: `${topic} can be memorized as a fixed recipe without understanding when it applies.`,
+          correction: `The conditions of application matter as much as the procedure — vary the context and check the idea still holds.`,
+        },
+        ...(i % 2 === 0
+          ? {
+              workedExample: {
+                setup: `A short scenario that requires ${topic.toLowerCase()}.`,
+                steps: ['identify what the question asks', 'apply the session idea', 'check the result against the conditions'],
+                answer: 'A worked result consistent with the session idea.',
+              },
+            }
+          : {}),
+        ...(Object.keys(romanization).length ? { romanization } : {}),
+      },
     ],
   };
 }

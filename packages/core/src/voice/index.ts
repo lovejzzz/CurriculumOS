@@ -103,9 +103,54 @@ export interface VoiceResult {
   usd: number;
 }
 
-/** Run the voice pass. Each surface: one model call (low reasoning), validate;
- *  on violation retry once with the rules quoted; on second failure fall back
- *  to the compiled skeleton with status 'fallback' (counted, never silent). */
+/** Voice one surface: attempt + ONE retry that QUOTES the violated rules
+ *  (020-contracts: "violations retry once with the violated rule quoted").
+ *  Returns null prose on second failure — the caller falls back loudly. */
+async function voiceOne(task: VoiceSurfaceTask, model: ModelPort): Promise<{ prose: VoiceProse | null; usd: number }> {
+  let usd = 0;
+  let lastViolations: string[] = [];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await model.completeJSON({
+      purpose: 'voice',
+      reasoning: 'low',
+      maxOutputTokens: 360, // a 140-word surface needs ~200 tokens; cap the spend (W5)
+      system: VOICE_SYSTEM,
+      user:
+        `Rewrite this surface as warm, specific prose. Return JSON {"text": "..."}. ` +
+        `Use ONLY facts, names, and numbers that appear in the grounding below — introduce nothing new. ` +
+        (attempt > 0
+          ? `Your previous attempt violated the voice contract. The violated rules, quoted: ${lastViolations.join('; ')}. Fix exactly these and change nothing else about your approach. `
+          : '') +
+        `Frozen (keep verbatim): ${task.frozen.join(' | ') || 'none'}.`,
+      payload: { surfaceId: task.surfaceId, compiled: task.compiled, grounding: task.grounding },
+    });
+    usd += res.usd;
+    const text = extractText(res.json) ?? task.compiled;
+    const check = checkVoice({ voiced: text, compiled: task.compiled, frozen: task.frozen, grounding: task.grounding });
+    if (check.ok) {
+      return {
+        prose: {
+          surfaceId: task.surfaceId,
+          text,
+          contractVersion: VOICE_CONTRACT_VERSION,
+          basedOnHash: fnv1a(task.compiled),
+          status: 'active',
+        },
+        usd,
+      };
+    }
+    lastViolations = check.violations;
+  }
+  return { prose: null, usd };
+}
+
+/** Concurrent surfaces per wave — parallel, low-reasoning, budgeted (founding §4). */
+const VOICE_CONCURRENCY = 8;
+
+/** Run the voice pass. Surfaces are voiced in parallel waves; results apply in
+ *  task order (deterministic). The budget is checked between waves (W5): when
+ *  it runs out, the rest fall back to compiled skeletons — counted, never
+ *  silent. One surface's failure never touches its siblings. */
 export async function voiceStage(
   course: Course,
   model: ModelPort,
@@ -117,49 +162,36 @@ export async function voiceStage(
   let done = 0;
   let fallbacks = 0;
 
-  for (const task of tasks) {
+  const applyFallback = (task: VoiceSurfaceTask) => {
+    course.overlays.voice[task.surfaceId] = fallback(task);
+    fallbacks++;
+    done++;
+    opts.onSurface?.(task.surfaceId, true);
+  };
+
+  for (let i = 0; i < tasks.length; i += VOICE_CONCURRENCY) {
+    const wave = tasks.slice(i, i + VOICE_CONCURRENCY);
     if (usd >= budget) {
-      // W5: budget exhausted mid-pass — voice what we can, fall back for the rest, say so
-      course.overlays.voice[task.surfaceId] = fallback(task);
-      fallbacks++;
-      opts.onSurface?.(task.surfaceId, true);
+      wave.forEach(applyFallback); // W5: exhausted — voice what we could, say so
       continue;
     }
-    let accepted: VoiceProse | null = null;
-    for (let attempt = 0; attempt < 2 && !accepted; attempt++) {
-      const res = await model.completeJSON({
-        purpose: 'voice',
-        reasoning: 'low',
-        system: VOICE_SYSTEM,
-        user:
-          `Rewrite this surface as warm, specific prose. Return JSON {"text": "..."}. ` +
-          `Use ONLY facts, names, and numbers that appear in the grounding below — introduce nothing new. ` +
-          (attempt > 0 ? `Your previous attempt violated the contract — keep all ids, titles, and numbers exactly; 60–140 words; no headings; no new names/numbers. ` : '') +
-          `Frozen (keep verbatim): ${task.frozen.join(' | ') || 'none'}.`,
-        payload: { surfaceId: task.surfaceId, compiled: task.compiled, grounding: task.grounding },
-      });
-      usd += res.usd;
-      const text = extractText(res.json) ?? task.compiled;
-      const check = checkVoice({ voiced: text, compiled: task.compiled, frozen: task.frozen, grounding: task.grounding });
-      if (check.ok) {
-        accepted = {
-          surfaceId: task.surfaceId,
-          text,
-          contractVersion: VOICE_CONTRACT_VERSION,
-          basedOnHash: fnv1a(task.compiled),
-          status: 'active',
-        };
+    const settled = await Promise.allSettled(wave.map((task) => voiceOne(task, model)));
+    settled.forEach((outcome, j) => {
+      const task = wave[j]!;
+      if (outcome.status === 'fulfilled') {
+        usd += outcome.value.usd;
+        if (outcome.value.prose) {
+          course.overlays.voice[task.surfaceId] = outcome.value.prose;
+          done++;
+          opts.onSurface?.(task.surfaceId, false);
+        } else {
+          applyFallback(task);
+        }
+      } else {
+        // provider/budget error on this surface — its siblings are unaffected
+        applyFallback(task);
       }
-    }
-    if (accepted) {
-      course.overlays.voice[task.surfaceId] = accepted;
-      opts.onSurface?.(task.surfaceId, false);
-    } else {
-      course.overlays.voice[task.surfaceId] = fallback(task);
-      fallbacks++;
-      opts.onSurface?.(task.surfaceId, true);
-    }
-    done++;
+    });
   }
 
   return { done, total: tasks.length, fallbacks, usd };
