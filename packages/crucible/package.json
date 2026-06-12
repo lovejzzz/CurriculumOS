@@ -1,0 +1,11 @@
+{
+  "name": "@curriculumos/crucible",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/round.ts",
+  "dependencies": {
+    "@curriculumos/core": "workspace:*",
+    "@curriculumos/api": "workspace:*"
+  }
+}

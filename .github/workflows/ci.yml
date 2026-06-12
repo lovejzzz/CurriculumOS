@@ -1,0 +1,26 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Four gates, in order of cheapness (founding §8): types → guardrail lints → unit/golden.
+      # The artifact gate and Crucible rounds arm when a model key is configured.
+      - run: pnpm typecheck
+      - run: pnpm lint:budget
+      - run: pnpm lint:purity
+      - run: pnpm lint:tokens
+      - run: pnpm test

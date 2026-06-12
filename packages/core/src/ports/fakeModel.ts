@@ -1,0 +1,215 @@
+/** ports/fakeModel.ts — a deterministic ModelPort (no effects; replay-safe).
+ *  It authors a valid, NON-degenerate typed graph from the brief so the whole
+ *  pipeline round-trips through every machine state with a fake model (M0 bar)
+ *  and the Crucible can drive a build without spending a cent. The real
+ *  OpenAI port (packages/api) returns the SAME shapes. */
+import type { ModelPort, ModelRequest, ModelResult } from './index.ts';
+import type { PassA, PassB } from '../author/schema.ts';
+import { detectWeeks, inferDiscipline } from '../author/briefParse.ts';
+
+function topicsFromBrief(brief: string): string[] {
+  const m = brief.match(/lessons?\s+cover[:\s]+(.*?)(?:\.\s*(?:Course materials|Required readings|$)|$)/is);
+  if (!m?.[1]) return [];
+  return m[1]
+    .split(/;|—|(?:,\s+and\s+)/)
+    .map((t) =>
+      t
+        .replace(/\band\b\s*$/i, '')
+        .replace(/^\s*(?:a|an|the)\s+/i, '')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    )
+    .filter((t) => t.length > 2)
+    .map((t) => t.charAt(0).toUpperCase() + t.slice(1));
+}
+
+function titleCaseTopic(t: string): string {
+  return t.length > 64 ? t.slice(0, 61).trimEnd() + '…' : t;
+}
+
+export function fakePassA(brief: string): PassA {
+  const discipline = inferDiscipline(brief);
+  const weeks = detectWeeks(brief) ?? 12;
+  let topics = topicsFromBrief(brief);
+  if (topics.length === 0) {
+    topics = Array.from({ length: weeks }, (_, i) => `Core topic ${i + 1}`);
+  }
+  // pad or trim to the stated week count (sessions >= weeks — §A2)
+  if (topics.length < weeks) {
+    while (topics.length < weeks) topics.push(`Review and synthesis ${topics.length + 1}`);
+  } else if (topics.length > weeks) {
+    topics = topics.slice(0, weeks);
+  }
+  const sessions = topics.map((t) => ({ title: titleCaseTopic(t) }));
+
+  const titleMatch = brief.match(/^([^,]+?),\s+a\s+\d/i) ?? brief.match(/^([^,]+),/);
+  const courseTitle = (titleMatch?.[1] ?? 'Untitled Course').trim();
+
+  const n = sessions.length;
+  const midtermSession = Math.max(1, Math.round(n / 2));
+  const lower = brief.toLowerCase();
+
+  const assessments: PassA['assessments'] = [];
+
+  // weekly cadence (problem sets / quizzes / labs / responses) — expands per session (§A1)
+  const weeklyKind = /quiz/.test(lower)
+    ? ('quiz' as const)
+    : /problem set|data lab|diet-analysis lab/.test(lower)
+      ? ('graded-artifact' as const)
+      : /reading response|close-reading|case (discussion|stud)|discussion/.test(lower)
+        ? ('discussion' as const)
+        : /lab/.test(lower)
+          ? ('graded-artifact' as const)
+          : ('quiz' as const);
+  if (/weekly|each week/.test(lower)) {
+    assessments.push({
+      title: weeklyKind === 'quiz' ? 'Weekly quiz' : weeklyKind === 'discussion' ? 'Weekly response' : 'Weekly assignment',
+      kind: weeklyKind,
+      weightPct: 30,
+      cadence: 'per-session',
+      announcedInSession: 1,
+      dueInSession: 1,
+      coveredSessions: sessions.map((_, i) => i + 1),
+    });
+  }
+
+  // midterm
+  if (/midterm/.test(lower)) {
+    const twoMid = /\b(two|2)\s+midterms?/.test(lower);
+    const covered = Array.from({ length: midtermSession }, (_, i) => i + 1);
+    assessments.push({
+      title: 'Midterm exam',
+      kind: 'exam',
+      weightPct: twoMid ? 20 : 30,
+      cadence: 'once',
+      announcedInSession: 1,
+      dueInSession: midtermSession,
+      coveredSessions: covered,
+    });
+    if (twoMid) {
+      assessments.push({
+        title: 'Midterm exam 2',
+        kind: 'exam',
+        weightPct: 20,
+        cadence: 'once',
+        announcedInSession: midtermSession,
+        dueInSession: Math.max(midtermSession + 1, Math.round((3 * n) / 4)),
+        coveredSessions: Array.from({ length: Math.round((3 * n) / 4) - midtermSession }, (_, i) => midtermSession + 1 + i),
+      });
+    }
+  }
+
+  // final — exam or project depending on the brief
+  const finalIsProject = /final\s+(project|paper|diet-analysis project|data-analysis project|presentation)/.test(lower);
+  const finalIsPerformance = /final\s+oral|oral performance/.test(lower);
+  const remaining = Math.max(10, 100 - assessments.reduce((s, a) => s + (a.weightPct ?? 0), 0));
+  assessments.push(
+    finalIsPerformance
+      ? { title: 'Final oral performance', kind: 'oral', weightPct: remaining, cadence: 'once', announcedInSession: 1, dueInSession: n }
+      : finalIsProject
+        ? { title: 'Final project', kind: 'project', weightPct: remaining, cadence: 'once', announcedInSession: Math.max(1, n - 2), dueInSession: n }
+        : {
+            title: 'Final exam',
+            kind: 'exam',
+            weightPct: remaining,
+            cadence: 'once',
+            announcedInSession: 1,
+            dueInSession: n,
+            coveredSessions: sessions.map((_, i) => i + 1),
+          },
+  );
+
+  // normalize graded weights to 100 deterministically
+  const total = assessments.reduce((s, a) => s + (a.weightPct ?? 0), 0);
+  if (total !== 100 && total > 0) {
+    const last = assessments[assessments.length - 1]!;
+    last.weightPct = Math.max(0, (last.weightPct ?? 0) + (100 - total));
+  }
+
+  // readings from the grounding fixture's "Week N reads X" and "Title ch. N"
+  const readings: PassA['readings'] = [];
+  const readsRe = /week\s+(\d{1,2})\s+reads?\s+([A-Z][^.;]+?)(?=[.;]|\s+Week\s+\d|$)/gi;
+  for (const m of brief.matchAll(readsRe)) {
+    const wk = parseInt(m[1]!, 10);
+    if (wk >= 1 && wk <= n && m[2]) readings.push({ title: m[2].trim(), kind: 'book', inSessions: [wk] });
+  }
+  const chapRe = /\b([A-Z][A-Za-z'’]+(?:\s+[A-Z][A-Za-z'’]+){0,3})\s+ch\.?\s*([\d–-]+)/g;
+  for (const m of brief.matchAll(chapRe)) {
+    if (m[1]) readings.push({ title: m[1].trim(), kind: 'chapter', locator: `ch. ${m[2]}`, inSessions: [Math.min(3, n)] });
+  }
+
+  return { courseTitle, discipline, sessions, assessments, readings, resources: [] };
+}
+
+function bloomCycle(i: number): PassB['outcomes'][number]['bloom'] {
+  const order: PassB['outcomes'][number]['bloom'][] = ['Understand', 'Apply', 'Analyze', 'Evaluate'];
+  return order[i % order.length]!;
+}
+
+export function fakePassB(payload: { sessionIndex: number; title: string }): PassB {
+  const topic = payload.title.replace(/…$/, '');
+  return {
+    sessionIndex: payload.sessionIndex,
+    concepts: [{ name: topic }],
+    outcomes: [
+      { text: `Explain the core ideas of ${topic.toLowerCase()}.`, bloom: bloomCycle(payload.sessionIndex) },
+      { text: `Apply ${topic.toLowerCase()} to a representative problem.`, bloom: bloomCycle(payload.sessionIndex + 1) },
+    ],
+  };
+}
+
+function fakeVoice(payload: { surfaceId: string; compiled: string }): { text: string } {
+  // the fake voice returns the compiled text unchanged (it never improves
+  // texture) — so a fake build is honest about voice being a no-op (Law 6).
+  return { text: payload.compiled };
+}
+
+/** Deterministic TA: parse a few command shapes into EditOps (for tests and
+ *  offline use). "set weight of A7.2 to 25" → assessment.set_weight. */
+function fakeChat(message: string): { reply: string; note?: string; ops: unknown[] } {
+  const weight = message.match(/weight\s+(?:of\s+)?(A\d+\.\d+)\s+to\s+(\d+)/i);
+  if (weight) {
+    const id = weight[1]!;
+    const pct = parseInt(weight[2]!, 10);
+    return {
+      reply: `Proposing to set ${id}'s weight to ${pct}%.`,
+      note: 'instructor asked to change a weight',
+      ops: [{ type: 'assessment.set_weight', id, weightPct: pct }],
+    };
+  }
+  const retitle = message.match(/(?:rename|retitle)\s+(S\d+)\s+to\s+["“]?([^"”]+)["”]?$/i);
+  if (retitle) {
+    return {
+      reply: `Proposing to retitle ${retitle[1]} to "${retitle[2]!.trim()}".`,
+      note: 'instructor asked to rename a session',
+      ops: [{ type: 'session.retitle', id: retitle[1], title: retitle[2]!.trim() }],
+    };
+  }
+  return { reply: "I can help adjust weights, titles, readings, and more — tell me what to change.", ops: [] };
+}
+
+/** The deterministic engine. usd is always 0 — a fake build spends nothing. */
+export class FakeModelPort implements ModelPort {
+  async completeJSON(req: ModelRequest): Promise<ModelResult> {
+    const usage = { inputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
+    let json: unknown;
+    switch (req.purpose) {
+      case 'authorA':
+        json = fakePassA((req.payload as { brief: string }).brief);
+        break;
+      case 'authorB':
+        json = fakePassB(req.payload as { sessionIndex: number; title: string });
+        break;
+      case 'voice':
+        json = fakeVoice(req.payload as { surfaceId: string; compiled: string });
+        break;
+      case 'chat':
+        json = fakeChat((req.payload as { message: string }).message);
+        break;
+      case 'intake':
+      default:
+        json = {};
+    }
+    return { json, usage, model: 'fake-deterministic', usd: 0 };
+  }
+}

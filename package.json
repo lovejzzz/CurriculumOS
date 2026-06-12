@@ -1,45 +1,24 @@
 {
-  "name": "curriculum-os",
-  "version": "0.1.0",
+  "name": "curriculumos",
   "private": true,
+  "version": "0.1.0",
+  "description": "CurriculumOS — an engine that turns a description of a course into a verified, internally-consistent, teachable course, and keeps it consistent through every edit.",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@ai-sdk/openai": "^3.0.30",
-    "@prisma/client": "^5.22.0",
-    "ai": "^6.0.97",
-    "clsx": "^2.1.1",
-    "fast-json-patch": "^3.1.1",
-    "jsonpatch": "^3.1.0",
-    "lucide-react": "^0.575.0",
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-markdown": "^10.1.0",
-    "tailwind-merge": "^3.5.0",
-    "uuid": "^13.0.0",
-    "zustand": "^5.0.11"
+    "test": "vitest run",
+    "typecheck": "tsc -b packages/core packages/knowledge packages/api packages/crucible",
+    "lint:budget": "node scripts/lint-file-budget.mjs",
+    "lint:purity": "node scripts/lint-core-purity.mjs",
+    "lint:tokens": "node scripts/lint-tokens.mjs",
+    "ci": "pnpm typecheck && pnpm lint:budget && pnpm lint:purity && pnpm lint:tokens && pnpm test",
+    "api": "tsx packages/api/src/server.ts",
+    "app": "pnpm --dir apps/coursemapper dev",
+    "crucible": "tsx packages/crucible/src/round.ts",
+    "typecheck:app": "tsc -p apps/coursemapper --noEmit"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@types/uuid": "^11.0.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "jest": "^30.2.0",
-    "jest-environment-jsdom": "^30.2.0",
-    "prisma": "^5.22.0",
-    "tailwindcss": "^4",
-    "ts-jest": "^29.4.6",
-    "typescript": "^5"
+    "@types/node": "^25.9.3",
+    "tsx": "^4.22.4",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
   }
 }

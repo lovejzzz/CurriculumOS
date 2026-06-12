@@ -1,0 +1,85 @@
+/** render/templates/phrasing.ts — phrasing pools (DATA, not logic; ADR-10 exempt).
+ *  Trap #9: any fixed sentence stamped once per session crosses the 12-repeat
+ *  8-word-shingle limit at 12+ sessions. Pools rotate deterministically by
+ *  entity index (util.rotate) so renders stay varied AND replay-stable. */
+
+export const WARMUP_FRAMES = [
+  'Open by surfacing what learners already believe about',
+  'Begin with a quick retrieval check on',
+  'Start from a concrete situation that involves',
+  'Anchor the session in a short prompt about',
+  'Lead with a question that exposes intuitions around',
+  'Warm up by having students predict the behavior of',
+];
+
+export const CORE_FRAMES = [
+  'Work through the central idea of',
+  'Develop the core treatment of',
+  'Build the main argument around',
+  'Walk the class through the mechanics of',
+  'Establish the key relationships within',
+  'Unpack the structure underlying',
+];
+
+export const PRACTICE_FRAMES = [
+  'Give learners a guided problem applying',
+  'Move to paired practice on',
+  'Set a short worked exercise targeting',
+  'Have students attempt a graded-style task on',
+  'Run a quick application drill for',
+  'Assign in-class practice that stretches',
+];
+
+export const CLOSING_FRAMES = [
+  'Close by having students restate',
+  'End with a one-sentence summary of',
+  'Wrap up by connecting the session back to',
+  'Finish with an exit ticket on',
+  'Close the loop by previewing how this feeds',
+  'End by checking confidence on',
+];
+
+export const MC_CORRECT_STEMS = [
+  'The best answer is',
+  'Correct:',
+  'The right choice is',
+  'This option holds because',
+  'The accurate statement is',
+  'Choose this:',
+];
+
+export const MC_EXPLANATION_LEADS = [
+  'This is right because',
+  'It follows that',
+  'The reasoning is that',
+  'Here the key is that',
+  'This holds since',
+  'The distinction is that',
+];
+
+export const FAQ_LEADS = [
+  'A common question is',
+  'Students often ask',
+  'You may wonder',
+  'One thing learners check is',
+  'A frequent point of confusion is',
+  'It is worth clarifying',
+];
+
+export const GUIDE_LEADS = [
+  'As you review this session, focus first on',
+  'When you study this material, start with',
+  'The throughline of this session is',
+  'To consolidate this session, trace how',
+  'Reviewing here means making sure you can',
+  'The work of this session centers on',
+];
+
+export const DISCUSSION_FRAMES = [
+  'This week we turn the conversation toward',
+  'Use the board to think together about',
+  'Our discussion this session asks you to weigh',
+  'Bring your reading to bear on',
+  'The thread this session invites you into',
+  'Let the discussion open up the question of',
+];

@@ -1,0 +1,6 @@
+# 050-fixtures — the acceptance suite's raw material
+
+- **`courses.mjs`** — copied verbatim from the prototype (`scripts/crucible/courses.mjs`). The 11 course briefs that took the prototype from 51/F to 100/A: the four original audit courses, six genome courses (note `econ`'s **seeded prerequisite gap** — elasticity before demand curves — which the judgment layer must detect), and `world-lit-readings` with its full instructor-named canon and `expectReadings` assertions (the Grounding proof course: the only one that ever moved the judge +1). Plus the stranger pool for unseen-input rounds.
+- **`verdicts.json`** — the judge's verdict ledger. This is the **calibration target for the teachability dimension** (M2 bar): the metric must rank `world-lit-readings` above its readings-free twin and rank v0.14-era outputs below current ones, or it does not ship as a gate.
+
+Usage in the new repo: these briefs are the standing Crucible round set from M1 on. Do not "improve" the briefs — they are deliberately imperfect in instructor-realistic ways (vague cadences, unstated weights, mixed verbatim titles), and several of the prototype's best bugs were only catchable because the briefs stayed messy.

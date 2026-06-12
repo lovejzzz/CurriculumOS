@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CurriculumOS
 
-## Getting Started
+_An engine that turns a description of a course into a verified, internally-consistent, teachable course — and keeps it consistent through every edit._
 
-First, run the development server:
+The website was never the product. It is the first client of a brain called CurriculumOS, whose every answer proves itself: **no response without a receipt** — every result ships with its own grade, provenance, and price.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Built from the [handoff kit](docs/handoff/) (`docs/000-founding.md` is the founding design). The ten Laws live in [design/LAWS.md](design/LAWS.md) and are CI-enforced review criteria.
+
+## What's here
+
+```
+curriculumos/
+├── packages/
+│   ├── core/        # the pure engine — schema, state machine, edits, render, link/judge, voice, grade, build/patch
+│   │   └── (no DOM/fetch/storage/Date.now/Math.random — effects are injected ports; ADR-03)
+│   ├── knowledge/   # the genome cache (8 discipline shards) + cache-first linker + prerequisite judgment
+│   ├── api/         # the server home — the two verbs as HTTP, SSE, metering, the OpenAI/DeepSeek ModelPort
+│   └── crucible/    # the harness — drives builds, grades them, diffs against the verdict ledger
+├── apps/
+│   └── coursemapper/ # client #1 — the Door and the Desk (Vite + React)
+├── design/
+│   ├── LAWS.md       # §1 of the founding doc, normative
+│   └── tokens/       # the Calm Surface design system, consumed by the CI token scan
+├── scripts/          # the guardrail lints (file budget, core purity, design tokens)
+└── docs/             # the founding doc + the full handoff kit
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## The two verbs
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+POST  /courses        brief in → a Course Object out (graph, artifacts, grade, provenance, cost),
+                      streaming its build states as Server-Sent Events.
+PATCH /courses/{id}   a typed EditOp batch in → a diff + a fresh grade + an itemized cost out.
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Everything else is a read or a render: `GET /courses/{id}`, `/receipt`, `/package?format=zip`, `/events`,
+`/artifacts/{kind}/{scope}`, and `POST /courses/{id}/chat` (the TA — a tool-calling agent whose tools are EditOps,
+so its edits diff and re-grade like everyone else's). See [docs/handoff/010-schema/api.md](docs/handoff/010-schema/api.md).
 
-## Learn More
+## The Course Object
 
-To learn more about Next.js, take a look at the following resources:
+One artifact owns everything ([docs/handoff/010-schema/courseObject.ts](docs/handoff/010-schema/courseObject.ts)):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- a typed, id'd, versioned **graph** (the source of truth — nothing matches on strings),
+- **overlays** (genome kernels, model-authored voice, an append-only EditEvent log),
+- **receipts** (provenance, cost ledger, the dual-meter grade, build history).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Artifacts are never stored as truth — `render(graph, overlays)` derives them. So **sync is a property, not a feature**:
+an edit changes the graph or an overlay, re-render is free, and the diff between renders _is_ the sync plan.
 
-## Deploy on Vercel
+## Quick start
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm install
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# run the full CI gate: types + file-budget + core-purity + token scans + tests (36, all green)
+pnpm run ci
+
+# run a Crucible round against the deterministic fake engine ($0, no key needed)
+pnpm crucible -- --courses all
+
+# the server home (set a key for real builds; falls back to the fake engine without one)
+OPENAI_API_KEY=sk-... OPENAI_MODEL=gpt-5.4-mini pnpm api      # :8787
+
+# the web client (proxies /api → :8787)
+pnpm app                                                       # :5173
+```
+
+Bring-your-own-key or platform key — the same pure core runs in the browser, on the server, and in CI.
+Model names and prices are config (ADR-07); cost is computed from provider-reported tokens only.
+
+## Economics (measured, real provider)
+
+| Operation | Target | Measured (gpt-5.4-mini, with voice) |
+| --- | --- | --- |
+| Build (12–15 lessons) | ≤ $0.15, ≤ 90s | **$0.049 – $0.062** |
+| Structural edit | $0, < 5s | $0 (pure recompile + diff) |
+| Genome cache hit | $0 | $0 (the flywheel) |
+
+## The Laws, enforced
+
+The guardrails guard the guard (Law 10): `pnpm run ci` fails on a >1,500-line file (ADR-10), on any
+`fetch`/`fs`/`Date.now`/`Math.random` reachable from the pure core (ADR-03), on sub-12px text or off-palette
+status colors in the app, on a type error, or on a failing test. Quality is physics, not vibes.
+
+_CourseMapper, built on CurriculumOS._

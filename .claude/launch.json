@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "coursemapper",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "apps/coursemapper", "dev"],
+      "port": 5173
+    }
+  ]
+}

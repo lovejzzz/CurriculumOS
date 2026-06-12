@@ -1,0 +1,10 @@
+/** test fixtures — the brief strings used across core tests, drawn from the
+ *  Crucible reference suite (050-fixtures/courses.mjs). */
+export const ECON_BRIEF =
+  'Principles of Microeconomics, a 14-lesson introductory college course with weekly problem sets and a midterm. Lessons cover: the economic model and simplifying assumptions; opportunity cost and trade-offs; comparative advantage and gains from trade; consumer choice and utility maximization; price elasticity of demand and elastic versus inelastic goods; the demand curve and the law of demand; the supply curve and the law of supply; market equilibrium where supply and demand balance; externalities and spillover costs; monopoly and market power; the circular flow of income; capital accumulation and net investment; labor force classification and who counts as unemployed; and a natural experiment approach to policy evaluation with a course review.';
+
+export const CS_BRIEF =
+  'Introduction to Computer Science with Python, a 15-lesson introductory college course with weekly autograded quizzes and hands-on coding labs. Lessons cover: orientation and environment setup; variables, expressions, and types; conditionals and boolean logic; while loops; for loops and range; functions and scope; lists; strings and text processing; dictionaries and nested data; file input and output; a midterm review and midterm exam; recursion; classes and objects; debugging and testing; an introduction to algorithms; and a final project integrating the full semester.';
+
+export const MANDARIN_BRIEF =
+  'Elementary Mandarin Chinese I, a 15-lesson first-semester college Mandarin course with weekly speaking practice, listening drills, and character writing homework. Lessons cover: the pinyin system and the four tones; greetings and self-introductions; classroom language; numbers, age, and dates; family members and possession with 的; daily routines and telling time; core SVO sentence patterns; basic characters and short reading passages; food and dining; shopping and money; weather and clothing; transportation and directions; health and feelings; and a course review leading to a final oral performance.';

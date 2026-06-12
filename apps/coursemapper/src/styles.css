@@ -1,0 +1,148 @@
+/* styles.css — the Calm Surface design system (060-design-system.md).
+ * slate = structure, indigo = interactive, amber/green/red = status ONLY.
+ * 12px reading floor; the counted 10px badge scale is the only exception
+ * (ledger in scripts/lint-tokens.mjs allows 6 here). One radius scale. */
+:root {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1;
+  --slate-400: #94a3b8; --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155;
+  --slate-800: #1e293b; --slate-900: #0f172a;
+  --indigo-50: #eef2ff; --indigo-100: #e0e7ff; --indigo-500: #6366f1; --indigo-600: #4f46e5; --indigo-700: #4338ca;
+  --amber-50: #fffbeb; --amber-600: #d97706; --amber-700: #b45309;
+  --green-50: #ecfdf5; --green-600: #059669; --green-700: #047857;
+  --red-50: #fef2f2; --red-600: #dc2626; --red-700: #b91c1c;
+
+  --radius-lg: 12px; --radius-md: 8px; --radius-sm: 5px;
+  --shadow-soft: 0 1px 3px rgb(15 23 42 / 0.07), 0 6px 18px rgb(15 23 42 / 0.05);
+
+  --bg: #ffffff; --bg-raised: var(--slate-50); --fg: var(--slate-800); --fg-muted: var(--slate-500);
+  --border: 1px solid rgb(203 213 225 / 0.6);
+}
+.dark {
+  --bg: #0b1120; --bg-raised: #0f172a; --fg: var(--slate-200); --fg-muted: var(--slate-400);
+  --border: 1px solid rgb(51 65 85 / 0.6);
+  --shadow-soft: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px; line-height: 1.55; color: var(--fg); background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea, select { font-family: 'Trebuchet MS', 'Segoe UI', Calibri, sans-serif; }
+h1, h2, h3, .ui { font-family: 'Trebuchet MS', 'Segoe UI', Calibri, sans-serif; }
+h1 { font-size: 24px; } h2 { font-size: 18px; } h3 { font-size: 15px; }
+p, li, td, th, label { font-size: 13px; }
+.muted { color: var(--fg-muted); font-size: 12px; }
+
+/* ── The Door ── */
+.door { max-width: 720px; margin: 0 auto; padding: 8vh 24px; }
+.door h1 { font-weight: 600; letter-spacing: -0.01em; }
+.door .brand { font-size: 12px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.door textarea {
+  width: 100%; min-height: 160px; padding: 16px; margin-top: 16px; resize: vertical;
+  border: var(--border); border-radius: var(--radius-lg); background: var(--bg-raised);
+  font-size: 14px; line-height: 1.6; color: var(--fg);
+}
+.door textarea:focus { outline: 2px solid var(--indigo-500); border-color: transparent; }
+
+/* heard-so-far chips */
+.heard { margin: 16px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.heard .label { font-size: 12px; color: var(--fg-muted); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+  border-radius: var(--radius-sm); background: var(--slate-100); color: var(--slate-700);
+  font-family: 'Trebuchet MS', sans-serif; font-size: 12px;
+}
+.dark .chip { background: var(--slate-800); color: var(--slate-200); }
+.chip.reading { background: var(--indigo-50); color: var(--indigo-700); }
+.dark .chip.reading { background: rgb(67 56 202 / 0.25); color: var(--indigo-100); }
+
+/* ── The CTA (one morphing verb) ── */
+.cta {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+  border: none; border-radius: var(--radius-md); cursor: pointer;
+  background: var(--indigo-600); color: #fff; font-size: 14px; font-weight: 600;
+}
+.cta:hover { background: var(--indigo-700); }
+.cta:disabled { opacity: 0.55; cursor: default; }
+.cta.ghost { background: transparent; color: var(--indigo-600); }
+
+/* ── The Desk ── */
+.desk { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
+.desk-main { display: grid; grid-template-columns: 1fr 320px; overflow: hidden; }
+.course-pane { overflow-y: auto; padding: 24px 32px; }
+.ta-pane { border-left: var(--border); overflow-y: auto; padding: 20px; background: var(--bg-raised); }
+
+/* ── The Spine (sole status narrator) ── */
+.spine {
+  display: flex; align-items: center; gap: 14px; padding: 10px 20px;
+  border-bottom: var(--border); background: var(--bg-raised);
+}
+.spine .step { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--fg-muted); }
+.spine .step.active { color: var(--indigo-600); font-weight: 600; }
+.spine .step.done { color: var(--green-700); }
+.spine .dot { width: 7px; height: 7px; border-radius: 9999px; background: var(--slate-300); }
+.spine .step.active .dot { background: var(--indigo-500); }
+.spine .step.done .dot { background: var(--green-600); }
+.spine .ticker { margin-left: auto; font-family: 'Trebuchet MS', sans-serif; font-size: 12px; color: var(--fg-muted); }
+
+/* ── The Course (one continuous document) ── */
+.session { border: var(--border); border-radius: var(--radius-lg); margin-bottom: 16px; background: var(--bg); box-shadow: var(--shadow-soft); }
+.session > summary { list-style: none; cursor: pointer; padding: 14px 18px; display: flex; align-items: center; gap: 10px; }
+.session > summary::-webkit-details-marker { display: none; }
+.session-title { font-family: 'Trebuchet MS', sans-serif; font-size: 15px; font-weight: 600; }
+.artifact-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 14px; }
+.artifact-card { padding: 12px 16px; }
+.session-body { padding: 4px 18px 18px; }
+.block { margin: 12px 0; }
+.block h4 { font-family: 'Trebuchet MS', sans-serif; font-size: 13px; margin: 0 0 4px; color: var(--slate-600); }
+table.grid { border-collapse: collapse; width: 100%; font-size: 12px; }
+table.grid th, table.grid td { border: var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
+table.grid th { background: var(--slate-100); font-family: 'Trebuchet MS', sans-serif; }
+.dark table.grid th { background: var(--slate-800); }
+
+/* glow — the four-second sync moment */
+@keyframes glowpulse { 0% { box-shadow: 0 0 0 0 rgb(99 102 241 / 0.5); } 100% { box-shadow: 0 0 0 8px rgb(99 102 241 / 0); } }
+.glow { animation: glowpulse 1.6s ease-out 2; border-color: var(--indigo-500) !important; }
+
+/* identity badge — 10px counted scale (1) */
+.id-badge { font-family: 'Trebuchet MS', sans-serif; font-size: 10px; letter-spacing: 0.04em; color: var(--slate-500); background: var(--slate-100); padding: 1px 5px; border-radius: var(--radius-sm); }
+.dark .id-badge { background: var(--slate-800); color: var(--slate-400); }
+/* count pill — 10px counted scale (2) */
+.count-pill { font-family: 'Trebuchet MS', sans-serif; font-size: 10px; min-width: 16px; text-align: center; padding: 1px 5px; border-radius: 9999px; background: var(--indigo-600); color: #fff; }
+/* artifact chip label — 10px counted scale (3) */
+.artifact-chip { font-family: 'Trebuchet MS', sans-serif; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--slate-600); border: var(--border); border-radius: var(--radius-sm); padding: 2px 7px; cursor: pointer; background: var(--bg); }
+.artifact-chip:hover { border-color: var(--indigo-500); color: var(--indigo-600); }
+/* spine state marker — 10px counted scale (4) */
+.spine .marker { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+/* seal sub-label — 10px counted scale (5) */
+.seal .sub { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-muted); }
+/* queue tag — 10px counted scale (6) */
+.queue-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber-700); }
+
+/* ── The Queue (the one review surface) ── */
+.queue-item { border: var(--border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; background: var(--bg); }
+.queue-item .ops { font-family: 'Trebuchet MS', sans-serif; font-size: 12px; color: var(--slate-600); margin: 6px 0; }
+.diff-card { border-left: 3px solid var(--indigo-500); padding: 6px 10px; margin: 6px 0; font-size: 12px; background: var(--indigo-50); border-radius: var(--radius-sm); }
+.dark .diff-card { background: rgb(67 56 202 / 0.18); }
+
+/* ── The Seal ── */
+.seal { display: flex; align-items: center; gap: 18px; padding: 12px 20px; border-top: var(--border); background: var(--bg-raised); }
+.seal .meter { display: flex; flex-direction: column; }
+.seal .meter .val { font-family: 'Trebuchet MS', sans-serif; font-size: 18px; font-weight: 700; }
+.seal .meter.good .val { color: var(--green-700); }
+.seal .grow { margin-left: auto; }
+
+/* ── notices (the one attention shell, amber) ── */
+.notice { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-radius: var(--radius-md); background: var(--amber-50); color: var(--amber-700); border: 1px solid rgb(217 119 6 / 0.3); font-size: 12px; }
+.notice.blocked { background: var(--red-50); color: var(--red-700); border-color: rgb(220 38 38 / 0.3); }
+
+/* TA bubble */
+.ta-msg { padding: 10px 12px; border-radius: var(--radius-md); margin-bottom: 10px; font-size: 13px; }
+.ta-msg.them { background: var(--slate-100); }
+.dark .ta-msg.them { background: var(--slate-800); }
+.ta-msg.me { background: var(--indigo-600); color: #fff; margin-left: 28px; }
+.ta-input { display: flex; gap: 8px; margin-top: 10px; }
+.ta-input input { flex: 1; padding: 9px 12px; border: var(--border); border-radius: var(--radius-md); background: var(--bg); color: var(--fg); font-size: 13px; }
