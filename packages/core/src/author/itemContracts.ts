@@ -15,14 +15,17 @@ export interface ItemCheck {
 }
 
 const STOP = new Set(['the', 'a', 'an', 'of', 'is', 'are', 'to', 'and', 'or', 'in', 'on', 'for', 'with', 'that', 'this', 'it', 'as', 'be', 'by']);
+/** SCRIPT-AWARE content extraction (K1: a Latin-minded lint once rejected hanzi
+ *  as "too short" — the v0.0.5 round reproduced that scar in this very file:
+ *  stripping CJK made every Chinese distractor look like "generic filler").
+ *  Latin words count at >3 chars; every CJK character is content on its own. */
 function contentWords(text: string): Set<string> {
-  return new Set(
-    text
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .split(/\s+/)
-      .filter((w) => w.length > 3 && !STOP.has(w)),
-  );
+  const out = new Set<string>();
+  for (const w of text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)) {
+    if (w.length > 3 && !STOP.has(w)) out.add(w);
+  }
+  for (const ch of text.match(/[㐀-鿿぀-ヿ가-힯]/gu) ?? []) out.add(ch);
+  return out;
 }
 function overlap(a: Set<string>, b: Set<string>): number {
   let n = 0;
@@ -59,8 +62,15 @@ export function checkItem(item: AssessmentItem, kernel: Kernel | undefined): Ite
     }
   }
 
-  if (!item.answerKey || wordCount(item.answerKey) < 2) v.push('item-key: missing or trivial answer key');
-  if (/\b(TBD|TODO|placeholder|answer here|xxx)\b/i.test(item.answerKey)) v.push('item-key: placeholder key');
+  // key rules per kind (the v0.0.5 instrumentation: demanding a verbose key on
+  // MC was over-strict — for MC, the marked correct option IS the key)
+  if (item.kind === 'mc') {
+    const hasCorrect = (item.options ?? []).some((o) => o.correct);
+    if (!hasCorrect && (!item.answerKey || wordCount(item.answerKey) < 2)) v.push('item-key: MC has neither a marked correct option nor a key');
+  } else {
+    if (!item.answerKey || wordCount(item.answerKey) < 2) v.push('item-key: missing or trivial answer key');
+  }
+  if (item.answerKey && /\b(TBD|TODO|placeholder|answer here|xxx)\b/i.test(item.answerKey)) v.push('item-key: placeholder key');
 
   return { ok: v.length === 0, violations: v };
 }

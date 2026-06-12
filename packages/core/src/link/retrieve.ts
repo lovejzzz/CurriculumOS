@@ -19,6 +19,8 @@ import { workMatches, topicMatches } from './relevance.ts';
 export interface RetrievalSummary {
   readingsEnriched: number;
   readingsMissed: string[]; // named (Law 6)
+  /** readings suggested into EMPTY slots (retrieved-open — R1: empty only) */
+  readingsSuggested: number;
   kernelsPromoted: number;
   /** promoted concepts, shaped for the genome extension store */
   promotions: GenomeConcept[];
@@ -27,7 +29,7 @@ export interface RetrievalSummary {
 const RETRIEVAL_CONCURRENCY = 4;
 
 export async function retrieveStage(course: Course, retrieval: RetrievalPort): Promise<RetrievalSummary> {
-  const summary: RetrievalSummary = { readingsEnriched: 0, readingsMissed: [], kernelsPromoted: 0, promotions: [] };
+  const summary: RetrievalSummary = { readingsEnriched: 0, readingsMissed: [], readingsSuggested: 0, kernelsPromoted: 0, promotions: [] };
   const g = course.graph;
 
   // ── reading enrichment (R1: enrich metadata, never replace identity) ──
@@ -57,6 +59,44 @@ export async function retrieveStage(course: Course, retrieval: RetrievalPort): P
       } else {
         summary.readingsMissed.push(reading.id); // named, never silent
       }
+    });
+  }
+
+  // ── reading suggestions into EMPTY slots (the 10/10 plan, R4): a session
+  //    with no readings gets ONE provider-verified suggestion keyed to its
+  //    lead concept, provenance retrieved-open. Instructor-named slots are
+  //    untouchable (R1: retrieval attaches only to EMPTY slots). ──
+  const orderedSessions = [...g.sessions].sort((a, b) => a.index - b.index);
+  const emptySessions = orderedSessions.filter(
+    (s) => !g.readings.some((r) => r.sessionIds.includes(s.id)) && s.conceptIds.length > 0,
+  );
+  for (let i = 0; i < emptySessions.length; i += RETRIEVAL_CONCURRENCY) {
+    const wave = emptySessions.slice(i, i + RETRIEVAL_CONCURRENCY);
+    const settled = await Promise.allSettled(
+      wave.map((s) => {
+        const lead = g.concepts.find((c) => c.id === s.conceptIds[0]);
+        return lead ? retrieval.findWork({ title: lead.name }) : Promise.resolve(null);
+      }),
+    );
+    settled.forEach((outcome, j) => {
+      const s = wave[j]!;
+      const lead = g.concepts.find((c) => c.id === s.conceptIds[0]);
+      const hit = outcome.status === 'fulfilled' ? outcome.value : null;
+      if (!hit || !lead || !topicMatches(lead.name, { ...hit, subjects: [hit.title, ...(hit.subjects ?? [])] })) return;
+      const n = g.readings.filter((r) => r.id.startsWith(`R${s.index}.`)).length + 1;
+      g.readings.push({
+        id: `R${s.index}.${n}` as never,
+        sessionIds: [s.id],
+        title: hit.title,
+        ...(hit.author ? { author: hit.author } : {}),
+        kind: 'book',
+        provenance: 'retrieved-open', // honest: suggested, not instructor-named
+        externalIds: {
+          ...(hit.externalIds.openlibrary ? { openlibrary: hit.externalIds.openlibrary } : {}),
+          ...(hit.externalIds.isbn ? { isbn: hit.externalIds.isbn } : {}),
+        },
+      });
+      summary.readingsSuggested++;
     });
   }
 

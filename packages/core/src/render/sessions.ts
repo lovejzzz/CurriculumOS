@@ -57,26 +57,38 @@ export function renderLessonPlan(course: Course, s: Session): RenderedArtifact {
     `${rotate(WARMUP_FRAMES, i)} ${topic.toLowerCase()}. This session matters because it carries an idea the rest of the course builds on.`;
   blocks.push(voiceBlock(course, `plan:${s.id}:opener`, 'opener', compiledOpener, 'Why this session matters'));
 
-  // Arc: warm-up → core → practice → closing, each tied to an outcome.
-  // Discipline-specific frames when the lens defines them (a cs session reads
-  // like cs, a lab like a lab); the generic pools are the fallback.
-  const lensArc = LENSES[course.graph.discipline].arc;
-  const t = topic.toLowerCase();
-  const phase = (pool: string[] | undefined, generic: string[], idx: number): string =>
-    pool ? `${rotate(pool, idx).replace(/%s/g, t)}.` : `${rotate(generic, idx)} ${t}.`;
-  // Concrete minute budgets (the judge: "no concrete timing") for a ~50-min
-  // session. Every outcome is assigned to a phase so none is orphaned
-  // ("doesn't operationalize the outcome"): outcomes spread across core+practice.
-  const outcomeIds = outcomes.map((o) => o!.id);
-  const half = Math.ceil(outcomeIds.length / 2) || 1;
-  const coreOutcomes = outcomeIds.slice(0, half).join(', ') || '—';
-  const practiceOutcomes = outcomeIds.slice(half).join(', ') || coreOutcomes;
-  const arcRows: string[][] = [['Phase', 'Min', 'Activity', 'Outcome']];
-  arcRows.push(['Warm-up', '8', phase(lensArc?.warmup, WARMUP_FRAMES, i + 1), outcomeIds[0] ?? '—']);
-  arcRows.push(['Core', '18', phase(lensArc?.core, CORE_FRAMES, i), coreOutcomes]);
-  arcRows.push(['Practice', '16', phase(lensArc?.practice, PRACTICE_FRAMES, i), practiceOutcomes]);
-  arcRows.push(['Closing', '8', phase(lensArc?.closing, CLOSING_FRAMES, i), outcomeIds[outcomeIds.length - 1] ?? '—']);
-  blocks.push({ kind: 'arc', heading: 'Session arc (≈50 min)', rows: arcRows });
+  // Arc: authored Pass D activities take precedence (content-woven scripts with
+  // checks + a performance task, v0.0.6); lens frames are the loud fallback.
+  const authored = course.overlays.activities?.[s.id];
+  if (authored && authored.status === 'active') {
+    const label: Record<string, string> = { warmup: 'Warm-up', core: 'Core', practice: 'Practice', closing: 'Closing' };
+    const totalMin = authored.phases.reduce((sum, p) => sum + p.minutes, 0);
+    blocks.push({
+      kind: 'arc',
+      heading: `Session arc (${totalMin} min)`,
+      rows: [
+        ['Phase', 'Min', 'Activity', 'Check', 'Outcome'],
+        ...authored.phases.map((p) => [label[p.phase] ?? p.phase, String(p.minutes), p.activity, p.check, p.outcomeIds.join(', ')]),
+      ],
+    });
+    blocks.push({ kind: 'performance-task', heading: 'Performance task', text: authored.performanceTask });
+  } else {
+    // ── compiled fallback: discipline lens frames with minute budgets ──
+    const lensArc = LENSES[course.graph.discipline].arc;
+    const t = topic.toLowerCase();
+    const phase = (pool: string[] | undefined, generic: string[], idx: number): string =>
+      pool ? `${rotate(pool, idx).replace(/%s/g, t)}.` : `${rotate(generic, idx)} ${t}.`;
+    const outcomeIds = outcomes.map((o) => o!.id);
+    const half = Math.ceil(outcomeIds.length / 2) || 1;
+    const coreOutcomes = outcomeIds.slice(0, half).join(', ') || '—';
+    const practiceOutcomes = outcomeIds.slice(half).join(', ') || coreOutcomes;
+    const arcRows: string[][] = [['Phase', 'Min', 'Activity', 'Outcome']];
+    arcRows.push(['Warm-up', '8', phase(lensArc?.warmup, WARMUP_FRAMES, i + 1), outcomeIds[0] ?? '—']);
+    arcRows.push(['Core', '18', phase(lensArc?.core, CORE_FRAMES, i), coreOutcomes]);
+    arcRows.push(['Practice', '16', phase(lensArc?.practice, PRACTICE_FRAMES, i), practiceOutcomes]);
+    arcRows.push(['Closing', '8', phase(lensArc?.closing, CLOSING_FRAMES, i), outcomeIds[outcomeIds.length - 1] ?? '—']);
+    blocks.push({ kind: 'arc', heading: 'Session arc (≈50 min)', rows: arcRows });
+  }
 
   // Materials: readings + resources by id
   const readings = readingsForSession(course, s.id);

@@ -4,8 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Server } from 'node:http';
 
-// configure env BEFORE importing the server (fake provider, no auto-listen, temp data)
+// configure env BEFORE importing the server (fake provider, no auto-listen,
+// temp data, NO live retrieval — the suite stays offline, the standing rule)
 process.env.COS_NO_LISTEN = '1';
+process.env.COS_NO_RETRIEVAL = '1';
 process.env.COS_DATA_DIR = mkdtempSync(join(tmpdir(), 'cos-api-'));
 delete process.env.OPENAI_API_KEY;
 delete process.env.DEEPSEEK_API_KEY;

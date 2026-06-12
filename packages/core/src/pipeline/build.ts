@@ -18,7 +18,8 @@ import { parseBrief, detectWeeks } from '../author/briefParse.ts';
 import { linkStage } from '../link/index.ts';
 import { retrieveStage, type RetrievalSummary } from '../link/retrieve.ts';
 import { judgeStage } from '../judge/index.ts';
-import { itemsStage } from '../author/items.ts';
+import { itemsStage, itemsBudgetFor } from '../author/items.ts';
+import { activitiesStage, activitiesBudgetFor } from '../author/activities.ts';
 import { voiceStage } from '../voice/index.ts';
 import { verify, grade } from '../grade/index.ts';
 import { CostLedgerBuilder, BudgetExceededError, meteredModel } from './cost.ts';
@@ -225,7 +226,7 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
       const rs = await retrieveStage(course, ports.retrieval);
       record(
         'retrieval',
-        `${rs.readingsEnriched} enriched, ${rs.kernelsPromoted} promoted` +
+        `${rs.readingsEnriched} enriched, ${rs.readingsSuggested} suggested, ${rs.kernelsPromoted} promoted` +
           (rs.readingsMissed.length ? `, missed: ${rs.readingsMissed.join(',')}` : ''),
       );
       opts.onRetrieval?.(rs);
@@ -247,9 +248,26 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
     //    before compile so the quiz renders from them ──
     if (itemsEnabled) {
       clock.tick?.();
-      const ires = await itemsStage(course, meteredModel(model, ledger, 'items'), { budgetUsd: Math.min(0.05, budget) });
-      record('items', `${ires.authored} authored, ${ires.fallbacks} fallback`);
+      const ires = await itemsStage(course, meteredModel(model, ledger, 'items'), {
+        budgetUsd: Math.min(itemsBudgetFor(course.graph.sessions.length), budget),
+      });
+      const reasons = Object.entries(ires.fallbackReasons)
+        .map(([sid, why]) => `${sid}: ${why}`)
+        .join(' | ');
+      record('items', `${ires.authored} authored, ${ires.fallbacks} fallback${reasons ? ` [${reasons}]` : ''}`);
       markItemProvenance(course);
+    }
+
+    // ── Pass D: content-woven activities (paid, budgeted, contract-linted) ──
+    if (itemsEnabled) {
+      clock.tick?.();
+      const ares = await activitiesStage(course, meteredModel(model, ledger, 'activities'), {
+        budgetUsd: Math.min(activitiesBudgetFor(course.graph.sessions.length), budget),
+      });
+      const aReasons = Object.entries(ares.fallbackReasons)
+        .map(([sid, why]) => `${sid}: ${why}`)
+        .join(' | ');
+      record('activities', `${ares.authored} authored, ${ares.fallbacks} fallback${aReasons ? ` [${aReasons}]` : ''}`);
     }
 
     // ── compile (deterministic render; $0) ──
@@ -275,7 +293,10 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
           emitState({ detail: { surfaces: { done: vDone, total: vTotal }, fallbacks: vFallbacks } });
         },
       });
-      record('voice', `${vres.fallbacks} fallbacks`);
+      const vCats = Object.entries(vres.fallbackCategories)
+        .map(([cat, n]) => `${cat}:${n}`)
+        .join(', ');
+      record('voice', `${vres.fallbacks} fallbacks${vCats ? ` [${vCats}]` : ''}`);
       markVoiceProvenance(course);
       stepTo({ type: 'VOICE_DONE' }); // → verify
     }

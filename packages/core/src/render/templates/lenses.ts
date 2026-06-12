@@ -12,6 +12,9 @@ export interface Lens {
   deliverable: string;
   /** verbs that signal the discipline's habits of mind */
   signatureVerbs: string[];
+  /** discipline-specific syllabus policy paragraphs (v0.0.7 — the judge:
+   *  "generic policy language"). Rendered after the universal block. */
+  policies?: { heading: string; text: string }[];
   /** discipline-specific session-arc activity frames (`%s` = topic). The
    *  generic pools in phrasing.ts are the fallback; these are what make a cs
    *  session read like cs and a lab session read like a lab (the judge's
@@ -57,6 +60,11 @@ export const LENSES: Record<DisciplineLens, Lens> = {
     activity: 'lab',
     deliverable: 'lab report',
     signatureVerbs: ['observe', 'identify', 'measure', 'classify'],
+    policies: [
+      { heading: 'Lab safety', text: 'Closed-toe shoes and provided eye protection are required at every bench session; no food or drink in the lab. A missed safety briefing must be made up before handling specimens.' },
+      { heading: 'Lab reports', text: 'Reports are due one week after each lab; data are recorded in ink in the bound notebook during the session, never reconstructed afterward.' },
+      { heading: 'Specimen handling', text: 'Hand specimens are shared instruments — return them to their numbered trays; report damage immediately (you will not be penalized for reporting).' },
+    ],
     arc: {
       warmup: [
         'Pass around a specimen or image of %s; students record three observations before any terms are introduced',
@@ -89,6 +97,11 @@ export const LENSES: Record<DisciplineLens, Lens> = {
     activity: 'coding lab',
     deliverable: 'program',
     signatureVerbs: ['implement', 'debug', 'trace', 'test'],
+    policies: [
+      { heading: 'Collaboration and AI tools', text: 'Discuss ideas freely; the code you submit must be typed and understood by you. Generative AI may be used to explain concepts, never to produce submitted code — if a tool wrote it and you cannot trace it line by line, it is not your work.' },
+      { heading: 'Late work', text: 'Programming assignments lose 10% per day late, capped at 3 days; quizzes cannot be made up but your lowest two are dropped.' },
+      { heading: 'Environment', text: 'Bring a laptop with the course toolchain installed; setup help is available in the first two lab sessions.' },
+    ],
     arc: {
       warmup: [
         'Live-code a tiny example of %s and have students predict the output before running it',
@@ -121,6 +134,11 @@ export const LENSES: Record<DisciplineLens, Lens> = {
     activity: 'close reading',
     deliverable: 'essay',
     signatureVerbs: ['interpret', 'argue', 'contextualize', 'compare'],
+    policies: [
+      { heading: 'Reading and participation', text: 'This is a discussion course: arrive having read the assigned text with passages marked. Participation is judged by the quality of textual evidence you bring, not by volume.' },
+      { heading: 'Essays and revision', text: 'Essays may be revised once within two weeks of feedback; the revised grade replaces the original. Plagiarism — including unattributed AI-generated prose — fails the assignment and is reported.' },
+      { heading: 'Translations', text: 'You may read any unabridged translation; cite the translator, since interpretive choices differ between versions.' },
+    ],
     arc: {
       warmup: [
         'Read a short passage bearing on %s aloud; students mark the single word that does the most work',
@@ -153,6 +171,11 @@ export const LENSES: Record<DisciplineLens, Lens> = {
     activity: 'problem set',
     deliverable: 'analysis',
     signatureVerbs: ['model', 'explain', 'evaluate', 'predict'],
+    policies: [
+      { heading: 'Problem sets', text: 'You may discuss problem sets in groups of up to three; write up your own solutions and list your collaborators at the top. Identical write-ups are treated as copying.' },
+      { heading: 'Late work', text: 'Problem sets lose one letter grade per 24 hours late; one no-questions-asked 48-hour extension is yours to spend any week except the last.' },
+      { heading: 'Data and sources', text: 'Empirical claims in your work cite their data source; figures you did not generate name their origin.' },
+    ],
     arc: {
       warmup: [
         'Open with a headline or price students have seen this week that %s explains',
@@ -185,6 +208,11 @@ export const LENSES: Record<DisciplineLens, Lens> = {
     activity: 'speaking practice',
     deliverable: 'oral performance',
     signatureVerbs: ['produce', 'comprehend', 'pronounce', 'converse'],
+    policies: [
+      { heading: 'Target-language classroom', text: 'Class is conducted in Mandarin to the fullest extent possible; English is a tool for grammar explanations, not conversation. Mistakes in the target language are progress, not penalties.' },
+      { heading: 'Oral practice', text: 'Weekly speaking practice is graded on preparation and risk-taking, not native-likeness; recordings are private to you and the instructor.' },
+      { heading: 'Character writing', text: 'Handwritten character homework follows stroke order; typed substitutions are not accepted unless an accommodation applies.' },
+    ],
     arc: {
       warmup: [
         'Choral echo: students repeat the target forms of %s after the model, exaggerating the hard parts',
@@ -229,6 +257,11 @@ export const LENSES: Record<DisciplineLens, Lens> = {
     activity: 'clinical case study',
     deliverable: 'case write-up',
     signatureVerbs: ['assess', 'explain', 'apply', 'evaluate'],
+    policies: [
+      { heading: 'Clinical confidentiality', text: 'Case studies use de-identified patients; never discuss case details outside class or post them anywhere. Confidentiality violations are professional-conduct matters, not just grade matters.' },
+      { heading: 'Competency gates', text: 'Safety-critical skills (medication math, vital-sign interpretation) require a passing re-attempt before progressing, independent of the course average.' },
+      { heading: 'Absences', text: 'Clinical case sessions cannot be fully reconstructed; more than two unexcused absences trigger an advising conversation.' },
+    ],
     arc: {
       warmup: [
         'Open with a one-paragraph patient vignette where %s is the hidden explanation',

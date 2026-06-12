@@ -109,6 +109,16 @@ export const DISTRACTOR_OTHER = [
   'A rule that applies to a different case',
 ];
 
+/** Exam short-answer stems rotate across covered sessions (trap #9). `%s` = concept. */
+export const EXAM_SA_FRAMES = [
+  'Explain %s and give one situation where it applies.',
+  'Define %s precisely, then contrast it with a case where it does NOT apply.',
+  'A classmate misuses %s — describe the error and correct it.',
+  'Walk through how %s works using a concrete example of your own.',
+  'State the conditions under which %s holds, and what breaks when they fail.',
+  'Summarize %s for a newcomer in three sentences, then add one subtlety they would miss.',
+];
+
 export const DISCUSSION_FRAMES = [
   'This week we turn the conversation toward',
   'Use the board to think together about',

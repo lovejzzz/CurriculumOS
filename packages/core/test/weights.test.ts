@@ -25,7 +25,7 @@ describe('grading scheme (suggested weights)', () => {
     // syllabus renders the suggested heading + functional numbers (no "per instructor")
     const syl = render(course).byKey['syllabus:course']!;
     const grading = syl.blocks.find((b) => b.kind === 'grading-table')!;
-    expect(grading.heading).toContain('suggested');
+    expect(grading.heading).toContain('default weighting');
     const text = JSON.stringify(grading.rows);
     expect(text).not.toContain('per instructor');
     expect(text).toMatch(/\d+%/);

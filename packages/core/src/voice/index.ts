@@ -6,7 +6,7 @@ import type { Course, SurfaceId, VoiceProse } from '../schema/courseObject.ts';
 import type { ModelPort } from '../ports/index.ts';
 import { render } from '../render/index.ts';
 import type { RenderBlock } from '../render/types.ts';
-import { fnv1a } from '../util.ts';
+import { fnv1a, wordCount } from '../util.ts';
 import { checkVoice } from './contracts.ts';
 
 export const VOICE_CONTRACT_VERSION = 1;
@@ -100,33 +100,46 @@ export interface VoiceResult {
   done: number;
   total: number;
   fallbacks: number;
+  /** fallback counts by violation category (W1-frozen / W2-no-new-facts /
+   *  W3-bounds / provider) — the v0.0.7 instrumentation */
+  fallbackCategories: Record<string, number>;
   usd: number;
 }
 
 /** Voice one surface: attempt + ONE retry that QUOTES the violated rules
  *  (020-contracts: "violations retry once with the violated rule quoted").
- *  Returns null prose on second failure — the caller falls back loudly. */
-async function voiceOne(task: VoiceSurfaceTask, model: ModelPort): Promise<{ prose: VoiceProse | null; usd: number }> {
+ *  Returns null prose + the failure CATEGORY on second failure (v0.0.7: a
+ *  fallback you can't categorize is a fallback you can't fix). */
+async function voiceOne(task: VoiceSurfaceTask, model: ModelPort): Promise<{ prose: VoiceProse | null; usd: number; category?: string }> {
   let usd = 0;
   let lastViolations: string[] = [];
+  // bounds scale with the surface: a 20-word compiled chip honestly tightened
+  // to 45 words is good voice — the fixed 60-word floor was rejecting it
+  const compiledWords = wordCount(task.compiled);
+  const minWords = compiledWords < 50 ? 40 : 60;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await model.completeJSON({
-      purpose: 'voice',
-      reasoning: 'low',
-      maxOutputTokens: 360, // a 140-word surface needs ~200 tokens; cap the spend (W5)
-      system: VOICE_SYSTEM,
-      user:
-        `Rewrite this surface as warm, specific prose. Return JSON {"text": "..."}. ` +
-        `Use ONLY facts, names, and numbers that appear in the grounding below — introduce nothing new. ` +
-        (attempt > 0
-          ? `Your previous attempt violated the voice contract. The violated rules, quoted: ${lastViolations.join('; ')}. Fix exactly these and change nothing else about your approach. `
-          : '') +
-        `Frozen (keep verbatim): ${task.frozen.join(' | ') || 'none'}.`,
-      payload: { surfaceId: task.surfaceId, compiled: task.compiled, grounding: task.grounding },
-    });
+    let res;
+    try {
+      res = await model.completeJSON({
+        purpose: 'voice',
+        reasoning: 'low',
+        maxOutputTokens: 360, // a 140-word surface needs ~200 tokens; cap the spend (W5)
+        system: VOICE_SYSTEM,
+        user:
+          `Rewrite this surface as warm, specific prose (${minWords}–140 words). Return JSON {"text": "..."}. ` +
+          `Use ONLY facts, names, and numbers that appear in the grounding below — introduce nothing new. ` +
+          (attempt > 0
+            ? `Your previous attempt violated the voice contract. The violated rules, quoted: ${lastViolations.join('; ')}. Fix exactly these and change nothing else about your approach. `
+            : '') +
+          `Frozen (keep verbatim): ${task.frozen.join(' | ') || 'none'}.`,
+        payload: { surfaceId: task.surfaceId, compiled: task.compiled, grounding: task.grounding },
+      });
+    } catch {
+      return { prose: null, usd, category: 'provider' };
+    }
     usd += res.usd;
     const text = extractText(res.json) ?? task.compiled;
-    const check = checkVoice({ voiced: text, compiled: task.compiled, frozen: task.frozen, grounding: task.grounding });
+    const check = checkVoice({ voiced: text, compiled: task.compiled, frozen: task.frozen, grounding: task.grounding, minWords });
     if (check.ok) {
       return {
         prose: {
@@ -141,7 +154,8 @@ async function voiceOne(task: VoiceSurfaceTask, model: ModelPort): Promise<{ pro
     }
     lastViolations = check.violations;
   }
-  return { prose: null, usd };
+  const category = lastViolations[0]?.split(':')[0] ?? 'unknown'; // W1-frozen / W2-no-new-facts / W3-bounds
+  return { prose: null, usd, category };
 }
 
 /** Concurrent surfaces per wave — parallel, low-reasoning, budgeted (founding §4). */
@@ -161,18 +175,20 @@ export async function voiceStage(
   let usd = 0;
   let done = 0;
   let fallbacks = 0;
+  const fallbackCategories: Record<string, number> = {};
 
-  const applyFallback = (task: VoiceSurfaceTask) => {
+  const applyFallback = (task: VoiceSurfaceTask, category: string) => {
     course.overlays.voice[task.surfaceId] = fallback(task);
     fallbacks++;
     done++;
+    fallbackCategories[category] = (fallbackCategories[category] ?? 0) + 1;
     opts.onSurface?.(task.surfaceId, true);
   };
 
   for (let i = 0; i < tasks.length; i += VOICE_CONCURRENCY) {
     const wave = tasks.slice(i, i + VOICE_CONCURRENCY);
     if (usd >= budget) {
-      wave.forEach(applyFallback); // W5: exhausted — voice what we could, say so
+      wave.forEach((t) => applyFallback(t, 'budget')); // W5: exhausted — voice what we could, say so
       continue;
     }
     const settled = await Promise.allSettled(wave.map((task) => voiceOne(task, model)));
@@ -185,16 +201,16 @@ export async function voiceStage(
           done++;
           opts.onSurface?.(task.surfaceId, false);
         } else {
-          applyFallback(task);
+          applyFallback(task, outcome.value.category ?? 'unknown');
         }
       } else {
         // provider/budget error on this surface — its siblings are unaffected
-        applyFallback(task);
+        applyFallback(task, 'provider');
       }
     });
   }
 
-  return { done, total: tasks.length, fallbacks, usd };
+  return { done, total: tasks.length, fallbacks, fallbackCategories, usd };
 }
 
 /** Refresh a single surface (the voice.refresh / voice invalidation path). */

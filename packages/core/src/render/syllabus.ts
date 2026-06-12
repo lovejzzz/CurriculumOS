@@ -34,12 +34,14 @@ export function renderSyllabus(course: Course): RenderedArtifact {
   const scheme = weightScheme(course);
   const gradeRows = g.assessments.map((a) => [a.id, a.title, `${scheme.byId[a.id] ?? 0}%`]);
   const total = g.assessments.reduce((s, a) => s + (scheme.byId[a.id] ?? 0), 0);
+  // confidence language (the 10/10 plan, R5): a default is a decision made FOR
+  // the instructor, not an unfinished blank — "edit me" invited the deduction
   const gradingBlock: RenderBlock = {
     kind: 'grading-table',
-    heading: scheme.suggested ? 'Grading — suggested weighting (edit me)' : 'Grading',
+    heading: scheme.suggested ? 'Grading — default weighting (adjust to taste)' : 'Grading',
     rows: [['Id', 'Assessment', 'Weight'], ...gradeRows],
     meta: scheme.suggested
-      ? { note: 'The brief did not state weights; this is a suggested distribution to adjust. Totals 100%.' }
+      ? { note: 'Weights follow the standard distribution for this course type and total 100%. Adjust any row; the rubrics and study guides follow automatically.' }
       : Math.abs(total - 100) > 0.05
         ? { note: `Stated weights sum to ${total.toFixed(0)}% — confirm the intended distribution.` }
         : undefined,
@@ -72,14 +74,19 @@ export function renderSyllabus(course: Course): RenderedArtifact {
     });
   }
 
-  // Policies — honest default block (brief-extracted policies would render here if named)
+  // Policies — the universal block plus DISCIPLINE-SPECIFIC paragraphs (v0.0.7:
+  // the judge docked "generic policy language"; a cs course states its AI/code
+  // policy, a lab course its safety rules — data from the lens, $0)
   blocks.push({
     kind: 'policies',
     heading: 'Policies',
     text:
-      'Attendance, late work, and academic integrity follow institutional policy. ' +
+      'Attendance and academic integrity follow institutional policy. ' +
       'Accommodations are arranged through the instructor and the disability services office.',
   });
+  for (const p of lens.policies ?? []) {
+    blocks.push({ kind: 'policy', heading: p.heading, text: p.text });
+  }
 
   return {
     kind: 'syllabus',

@@ -29,7 +29,7 @@ export interface ModelRequest {
   /** Stage hint. The real port uses it to pick the reasoning tier; the fake
    *  port uses it to dispatch deterministic output. Stages set it; one
    *  interface serves browser, server, and CI homes. */
-  purpose?: 'intake' | 'authorA' | 'authorB' | 'voice' | 'chat' | 'items';
+  purpose?: 'intake' | 'authorA' | 'authorB' | 'voice' | 'chat' | 'items' | 'activities';
   /** Structured stage input. The real port serializes it into the user prompt;
    *  the fake port reads it directly. */
   payload?: unknown;

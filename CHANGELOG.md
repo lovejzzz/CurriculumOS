@@ -1,5 +1,52 @@
 # Changelog
 
+## V0.0.5–V0.0.7 — June 12, 2026 (one tree, three campaign scopes)
+
+The first three iterations of [the 10/10 plan](docs/PLAN-10-OF-10.md), shipped
+together so every tag is a green tree. Judged validation of all three runs in
+the v0.0.9 campaign (per-iteration rounds were traded for one comprehensive
+measurement — economical and the campaign measures twice anyway).
+
+### v0.0.5 — items reliability (workstream A)
+- **Fallback instrumentation**: every Pass C fallback is NAMED per session in
+  the build record and round report. It paid for itself in its first round:
+  the ~85% fallback rate was MY lints, not the model — a Latin-minded
+  content-word check stripped all hanzi ("generic filler" on every Chinese
+  distractor — the kit's K1 scar, reproduced and fixed script-aware), a
+  verbose-key demand on MC items (the marked correct option IS the key), and
+  case-intolerant Bloom enums ('apply' vs 'Apply').
+- **Fallback floor**: compiled quizzes ship misconception-grounded items only —
+  ≥2 misconceptions → MC with real distractors (at most one generic option);
+  exactly 1 → an honest true/false-with-explain; 0 → short-answer/applied.
+- **Exams through Pass C**: exam docs use the strongest authored item per
+  covered session; rotating stems for the compiled remainder.
+- Items budget scales with course size.
+
+### v0.0.6 — Pass D: content-woven activities (workstream B)
+- A budgeted, contract-linted pass writes each session's 4-phase activity
+  sequence USING the kernel — the worked example becomes the core script, the
+  excerpt the close-reading object — with minutes summing to a real class
+  period, EVERY outcome operationalized, a 2-minute check per phase, and one
+  concrete performance task. Lens frames remain the loud fallback.
+- Contracts: outcome coverage, kernel-vocabulary grounding (script-aware),
+  phase distinctness, real-period minutes; violations quoted on retry.
+
+### v0.0.7 — the complete syllabus + categorized voice (workstreams C+D)
+- **Retrieval fills EMPTY reading slots** (retrieved-open provenance, relevance-
+  gated, one per session, instructor slots untouchable per R1).
+- **Per-discipline policy library** (data): cs AI/collaboration policy, lab
+  safety, seminar participation, clinical confidentiality, target-language
+  classroom norms, problem-set collaboration rules.
+- **Confidence language**: "Default weighting — adjust to taste" (a default is
+  a decision made FOR the instructor, not an unfinished blank).
+- **Voice fallbacks categorized** (W1-frozen / W2-no-new-facts / W3-bounds /
+  provider) in the build record; bounds now scale with the surface (short
+  compiled chips accept 40+ words — the fixed 60 floor was rejecting honest
+  tightenings).
+
+94 tests green; the suite stays offline (a live-retrieval leak into the API
+tests was caught by its 50× slowdown and sealed with COS_NO_RETRIEVAL).
+
 ## V0.0.4 — June 12, 2026
 
 The knowledge flywheel begins (docs/ROADMAP-V0.0.4.md). The V0.0.3 residual was

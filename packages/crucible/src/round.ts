@@ -90,6 +90,15 @@ export async function runRound(args: Args): Promise<{ results: DriveResult[]; pa
   }
   lines.push('');
 
+  // Pass C instrumentation (the 10/10 plan, R1): every item fallback is named
+  for (const r of results) {
+    const itemsState = r.course.receipts.builds.at(-1)?.states.find((s) => s.state === 'items');
+    if (itemsState?.detail && itemsState.detail.includes('fallback') && !itemsState.detail.includes('0 fallback')) {
+      lines.push(`items (${r.id}): ${itemsState.detail}`);
+    }
+  }
+  lines.push('');
+
   // findings detail for any course under 90 — a 70/C must explain itself in the report
   for (const r of results) {
     if (r.structural < 90) {

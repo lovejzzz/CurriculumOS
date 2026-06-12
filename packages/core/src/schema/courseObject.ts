@@ -172,9 +172,31 @@ export interface Overlays {
    *  data like kernels/voice — the renderer reads them when present and falls
    *  back to compiled items when absent or contract-failed (V0.0.3). */
   items?: Record<SessionId, AssessmentItem[]>;
+  /** Pass D (v0.0.6): content-woven activity sequences — the session arc
+   *  written USING the kernel (worked example as the core script, excerpt as
+   *  the close-reading object), every outcome operationalized. Compiled lens
+   *  frames remain the fallback when absent. */
+  activities?: Record<SessionId, ActivityPlan>;
   /** Append-only. Replaying brief→edits deterministically reproduces the
    *  Course Object (no Date.now()/randomness inside core — Crucible law). */
   edits: EditEvent[]; // EditEvent defined in editOps.ts
+}
+
+/** One session's authored activity sequence (Pass D). Every phase carries a
+ *  minute budget, the actual teaching script (kernel-grounded — the contract
+ *  lints for concept vocabulary), the outcome ids it operationalizes, and a
+ *  two-minute check; plus one concrete performance task per session. */
+export interface ActivityPlan {
+  sessionId: SessionId;
+  phases: {
+    phase: 'warmup' | 'core' | 'practice' | 'closing';
+    minutes: number;
+    activity: string;
+    outcomeIds: OutcomeId[];
+    check: string;
+  }[];
+  performanceTask: string;
+  status: 'active' | 'fallback';
 }
 
 /** A genuine assessment item (Pass C). Distractors trace to DISTINCT kernel

@@ -61,8 +61,11 @@ export { voiceStage, collectSurfaces, voiceRefreshSurface, VOICE_BUDGET_USD } fr
 export { checkVoice } from './voice/contracts.ts';
 
 // items (Pass C)
-export { itemsStage } from './author/items.ts';
+export { itemsStage, itemsBudgetFor } from './author/items.ts';
 export { checkItem, checkItemSet } from './author/itemContracts.ts';
+
+// activities (Pass D)
+export { activitiesStage, activitiesBudgetFor, checkActivities } from './author/activities.ts';
 
 // grading scheme (suggested weights)
 export { weightScheme } from './render/weights.ts';

@@ -270,6 +270,28 @@ function fakeItems(grounding: string): unknown {
   };
 }
 
+/** Deterministic Pass D: contract-valid activities woven from the grounding
+ *  (the standing rule — the suite exercises the authored-arc render path). */
+function fakeActivities(grounding: string): unknown {
+  const concept = /Concept:\s*(.+)/.exec(grounding)?.[1]?.trim() ?? /Session \d+:\s*(.+)/.exec(grounding)?.[1]?.trim() ?? 'the concept';
+  const def = /Definition:\s*(.+)/.exec(grounding)?.[1]?.trim() ?? `${concept} as defined in this session`;
+  const worked = /Worked example:\s*(.+?)\s*\|/.exec(grounding)?.[1]?.trim();
+  const excerpt = /Primary text:\s*"(.+?)"/.exec(grounding)?.[1]?.trim();
+  const outcomeIds = [...grounding.matchAll(/Outcome (O\d+\.\d+):/g)].map((m) => m[1]!);
+  const oids = outcomeIds.length ? outcomeIds : ['O1.1'];
+  const half = Math.ceil(oids.length / 2);
+  const anchor = excerpt ? `the passage "${excerpt.slice(0, 60)}"` : worked ? `the worked case (${worked.slice(0, 60)})` : `the definition: ${def.slice(0, 80)}`;
+  return {
+    phases: [
+      { phase: 'warmup', minutes: 8, activity: `Students write what they already believe about ${concept}, then compare against ${anchor} without comment yet.`, outcomeIds: [oids[0]], check: `Two students state their prior in one sentence about ${concept}.` },
+      { phase: 'core', minutes: 18, activity: `Walk ${anchor} step by step on the board, asking students to predict each move before revealing it; tie every step back to ${def.slice(0, 70)}.`, outcomeIds: oids.slice(0, half), check: `Cold-call: a student restates the key step of ${concept} unaided.` },
+      { phase: 'practice', minutes: 16, activity: `Pairs apply ${concept} to a fresh case the instructor names, writing their reasoning in the same step structure used for ${anchor}.`, outcomeIds: oids.slice(half).length ? oids.slice(half) : oids.slice(0, 1), check: `Each pair shows one completed step chain for ${concept}.` },
+      { phase: 'closing', minutes: 8, activity: `Exit ticket: one sentence on when ${concept} applies and one on when it fails, judged against ${def.slice(0, 60)}.`, outcomeIds: [oids[oids.length - 1]], check: `Collect tickets; count misconception echoes about ${concept}.` },
+    ],
+    performanceTask: `Students submit a one-page worked application of ${concept} to a case of their choosing, following the step structure modeled in class.`,
+  };
+}
+
 /** Deterministic TA: parse a few command shapes into EditOps (for tests and
  *  offline use). "set weight of A7.2 to 25" → assessment.set_weight. */
 function fakeChat(message: string): { reply: string; note?: string; ops: unknown[] } {
@@ -319,6 +341,9 @@ export class FakeModelPort implements ModelPort {
         break;
       case 'items':
         json = fakeItems((req.payload as { grounding: string }).grounding);
+        break;
+      case 'activities':
+        json = fakeActivities((req.payload as { grounding: string }).grounding);
         break;
       case 'intake':
       default:
