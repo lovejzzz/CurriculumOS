@@ -3,12 +3,12 @@ import type { Course } from '../schema/courseObject.ts';
 import { LENSES } from './templates/lenses.ts';
 import {
   assessmentsDueIn,
-  gradedAssessments,
   provenanceSorted,
   readingsForSession,
   sessionsInOrder,
   voiceBlock,
 } from './helpers.ts';
+import { weightScheme } from './weights.ts';
 import type { RenderBlock, RenderedArtifact } from './types.ts';
 
 export function renderSyllabus(course: Course): RenderedArtifact {
@@ -28,20 +28,22 @@ export function renderSyllabus(course: Course): RenderedArtifact {
     `Students engage through ${lens.activity}s and produce ${lens.deliverable}s, building from foundational ideas toward the course's culminating work.`;
   blocks.push(voiceBlock(course, 'syllabus:course:welcome', 'welcome', compiledWelcome, 'Course description'));
 
-  // Grading table — one row per graded assessment, summing to 100 (A4)
-  const graded = gradedAssessments(course);
-  const total = graded.reduce((s, a) => s + (a.weightPct ?? 0), 0);
-  const gradeRows = graded.map((a) => [a.id, a.title, `${a.weightPct}%`]);
-  const ungraded = g.assessments.filter((a) => a.weightPct === null);
-  for (const a of ungraded) gradeRows.push([a.id, a.title, 'weighting per instructor']);
+  // Grading table — stated weights when the brief gives them (A4), otherwise a
+  // suggested distribution clearly marked "edit me" (V0.0.3). Either way the
+  // table is functional — a number in every row, summing to 100.
+  const scheme = weightScheme(course);
+  const gradeRows = g.assessments.map((a) => [a.id, a.title, `${scheme.byId[a.id] ?? 0}%`]);
+  const total = g.assessments.reduce((s, a) => s + (scheme.byId[a.id] ?? 0), 0);
   const gradingBlock: RenderBlock = {
     kind: 'grading-table',
-    heading: 'Grading',
+    heading: scheme.suggested ? 'Grading — suggested weighting (edit me)' : 'Grading',
     rows: [['Id', 'Assessment', 'Weight'], ...gradeRows],
+    meta: scheme.suggested
+      ? { note: 'The brief did not state weights; this is a suggested distribution to adjust. Totals 100%.' }
+      : Math.abs(total - 100) > 0.05
+        ? { note: `Stated weights sum to ${total.toFixed(0)}% — confirm the intended distribution.` }
+        : undefined,
   };
-  if (Math.abs(total - 100) > 0.05 && graded.length > 0) {
-    gradingBlock.meta = { note: `Graded weights sum to ${total.toFixed(0)}% — weighting per instructor.` };
-  }
   blocks.push(gradingBlock);
 
   // Schedule — one row per session in index order

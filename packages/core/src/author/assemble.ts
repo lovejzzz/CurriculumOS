@@ -182,6 +182,7 @@ export function attachKernelCandidates(course: Course, batch: PassB): void {
       citations: [], // K3: unverified candidates carry no citations, ever
       sourceCue: 'the assigned course materials',
       ...(k.romanization && Object.keys(k.romanization).length ? { romanization: k.romanization } : {}),
+      ...(k.excerpt && (k.excerpt.text || k.excerpt.locator) ? { excerpt: k.excerpt } : {}),
       basedOn: { outcomeHash, titleHash: fnv1a(concept.name) },
     };
     course.overlays.kernels[concept.id] = kernel;

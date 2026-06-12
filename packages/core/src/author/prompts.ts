@@ -42,7 +42,8 @@ export function authorBSystem(): string {
     'For each concept, author a kernel: a precise 1–2 sentence definition, TWO real student misconceptions (each: the claim students actually believe + the correction), and — for quantitative or procedural concepts — a short worked example (setup, 2–4 steps, answer).',
     'RULE — no invented citations: kernels carry no references, authors, or sources. State only the subject matter itself.',
     'RULE — non-Latin scripts: when a concept involves non-Latin-script terms (hanzi, kana, Cyrillic, Arabic…), include a romanization map for every such term (e.g. {"的": "de"}). Course content must show the real script alongside romanization.',
-    'Return strict JSON: { sessionIndex, concepts:[{name}], outcomes:[{text,bloom}], kernels:[{concept, definition, misconceptions:[{claim,correction}], workedExample?:{setup,steps,answer}, romanization?}] }.',
+    'RULE — source text: when a concept centers on a specific primary text (a poem, scene, passage), include an "excerpt": for PUBLIC-DOMAIN works give a short verbatim excerpt (<= 25 words) with the work name and a locator; for works that may be under copyright give ONLY a precise locator (work + lines/section), never the text. A close-reading lesson must point at actual lines, not a generic prompt.',
+    'Return strict JSON: { sessionIndex, concepts:[{name}], outcomes:[{text,bloom}], kernels:[{concept, definition, misconceptions:[{claim,correction}], workedExample?:{setup,steps,answer}, romanization?, excerpt?:{text?,locator?,work?}}] }.',
   ].join('\n');
 }
 

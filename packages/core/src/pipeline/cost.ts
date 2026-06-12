@@ -4,7 +4,7 @@
 import type { CostLedger } from '../schema/courseObject.ts';
 import type { ModelPort, ModelRequest, ModelResult } from '../ports/index.ts';
 
-export const COST_CALL_SITES = ['author', 'link', 'judge', 'voice', 'kernel.refresh'] as const;
+export const COST_CALL_SITES = ['author', 'link', 'judge', 'items', 'voice', 'kernel.refresh'] as const;
 export type CostCallSite = (typeof COST_CALL_SITES)[number];
 
 export class BudgetExceededError extends Error {

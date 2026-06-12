@@ -101,6 +101,10 @@ export const passBSchema = z.object({
           .optional(),
         /** K2: non-Latin-script terms carry romanization (term → rm). */
         romanization: z.record(z.string(), z.string()).optional(),
+        /** source-text anchor: public-domain excerpt OR a locator (V0.0.3). */
+        excerpt: z
+          .object({ text: z.string().optional(), locator: z.string().optional(), work: z.string().optional() })
+          .optional(),
       }),
     )
     .default([]),

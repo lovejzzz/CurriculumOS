@@ -6,6 +6,7 @@ import { rotate } from '../util.ts';
 import { LENSES } from './templates/lenses.ts';
 import { MC_CORRECT_STEMS, MC_EXPLANATION_LEADS, MC_QUESTION_FRAMES, DISTRACTOR_UNRELATED, DISTRACTOR_OTHER } from './templates/phrasing.ts';
 import { readingsForSession, readingLabel, voiceBlock, rubricPoints } from './helpers.ts';
+import { weightScheme } from './weights.ts';
 import type { RenderBlock, RenderedArtifact } from './types.ts';
 
 function sessionOf(course: Course, id: string): Session | undefined {
@@ -78,15 +79,19 @@ export function renderBrief(course: Course, a: Assessment): RenderedArtifact {
 export function renderRubric(course: Course, a: Assessment): RenderedArtifact {
   const names = criteriaNames(course);
   const levels = ['Exemplary', 'Proficient', 'Developing', 'Beginning'];
-  const pts = rubricPoints(a.weightPct);
+  // weight from the scheme (stated, or suggested) so the rubric agrees with the syllabus
+  const scheme = weightScheme(course);
+  const effectiveWeight = scheme.byId[a.id] ?? a.weightPct;
+  const pts = rubricPoints(effectiveWeight);
   const per = pts / names.length;
+  const weightLabel = effectiveWeight != null ? `${effectiveWeight}%${scheme.suggested ? ' (suggested)' : ''}` : 'per instructor';
   const blocks: RenderBlock[] = [];
 
   blocks.push({
     kind: 'header',
     entityId: a.id,
     heading: `${a.id} · ${a.title} — Rubric`,
-    text: `Total: ${pts} points · Weight: ${a.weightPct ?? 'per instructor'}%`,
+    text: `Total: ${pts} points · Weight: ${weightLabel}`,
   });
 
   // 4 criteria × 4 levels, behavior-anchored descriptors
@@ -140,10 +145,43 @@ function mcItem(course: Course, concept: Concept, idx: number, ns: string, misco
   };
 }
 
+/** Render one authored Pass C item to a quiz block. */
+function authoredItemBlock(item: import('../schema/courseObject.ts').AssessmentItem, ns: string, n: number): RenderBlock {
+  if (item.kind === 'mc' && item.options) {
+    const correctIdx = item.options.findIndex((o) => o.correct);
+    const letter = String.fromCharCode(65 + Math.max(0, correctIdx));
+    return {
+      kind: 'mc',
+      entityId: item.conceptId,
+      heading: `${ns}.${n} (multiple choice)`,
+      text: item.stem,
+      rows: item.options.map((o, i) => [String.fromCharCode(65 + i), o.text]),
+      meta: { answer: item.answerKey, explanation: `Correct: ${letter}. ${item.answerKey}` },
+    };
+  }
+  return {
+    kind: item.kind === 'applied' ? 'applied' : 'short-answer',
+    entityId: item.conceptId,
+    heading: `${ns}.${n} (${item.kind === 'applied' ? 'applied' : 'short answer'})`,
+    text: item.stem,
+    meta: { answer: item.answerKey },
+  };
+}
+
 export function renderQuiz(course: Course, s: Session): RenderedArtifact {
-  const concepts = conceptsOfSession(course, s.id);
   const ns = `Q${s.index}`;
   const blocks: RenderBlock[] = [{ kind: 'header', entityId: s.id, heading: `${s.id} ${s.title} — Quiz`, text: `Item namespace: ${ns}` }];
+
+  // Pass C authored items take precedence when present (V0.0.3); otherwise the
+  // compiled items below are the fallback (counted in the receipt).
+  const authored = course.overlays.items?.[s.id];
+  if (authored && authored.length >= 4) {
+    authored.forEach((item, i) => blocks.push(authoredItemBlock(item, ns, i + 1)));
+    return { kind: 'quizBank', scope: s.id, title: `${s.id} ${s.title} — Quiz`, blocks, surfaces: [] };
+  }
+
+  // ── compiled fallback ──
+  const concepts = conceptsOfSession(course, s.id);
   let n = 1;
   // ≥6 items: MC (4 options), short answer, one applied — Bloom mix Understand+Apply.
   // Each misconception powers its own MC item (plurality there = variety here).

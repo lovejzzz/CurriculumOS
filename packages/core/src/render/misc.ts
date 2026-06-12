@@ -3,6 +3,7 @@ import type { Course } from '../schema/courseObject.ts';
 import { rotate } from '../util.ts';
 import { FAQ_LEADS } from './templates/phrasing.ts';
 import { assessmentsDueIn, readingsForSession, sessionsInOrder } from './helpers.ts';
+import { weightScheme } from './weights.ts';
 import type { RenderBlock, RenderedArtifact } from './types.ts';
 
 export function renderCourseMap(course: Course): RenderedArtifact {
@@ -28,14 +29,18 @@ export function renderCourseMap(course: Course): RenderedArtifact {
 
 export function renderFaq(course: Course): RenderedArtifact {
   const blocks: RenderBlock[] = [];
-  // Course-level: grading, late work, materials — from the same registry the syllabus uses
-  const graded = course.graph.assessments.filter((a) => a.weightPct !== null);
-  const total = graded.reduce((s, a) => s + (a.weightPct ?? 0), 0);
+  // Course-level: grading, late work, materials — from the same scheme the syllabus uses
+  const scheme = weightScheme(course);
+  const counted = course.graph.assessments.filter((a) => (scheme.byId[a.id] ?? 0) > 0);
+  const total = counted.reduce((s, a) => s + (scheme.byId[a.id] ?? 0), 0);
   blocks.push({
     kind: 'course-faq',
     heading: 'Course questions',
     rows: [
-      ['How is the course graded?', `Across ${graded.length} graded items totaling ${total.toFixed(0)}%.`],
+      [
+        'How is the course graded?',
+        `Across ${counted.length} graded items totaling ${total.toFixed(0)}%${scheme.suggested ? ' (suggested distribution — adjust on the syllabus)' : ''}.`,
+      ],
       ['What materials do I need?', `${course.graph.readings.length} readings and ${course.graph.resources.length} resources, listed by session.`],
       ['What is the late-work policy?', 'Late work follows institutional policy unless the instructor states otherwise.'],
     ],

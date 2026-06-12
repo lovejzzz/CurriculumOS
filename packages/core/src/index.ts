@@ -56,6 +56,13 @@ export { judgeStage } from './judge/index.ts';
 export { voiceStage, collectSurfaces, voiceRefreshSurface, VOICE_BUDGET_USD } from './voice/index.ts';
 export { checkVoice } from './voice/contracts.ts';
 
+// items (Pass C)
+export { itemsStage } from './author/items.ts';
+export { checkItem, checkItemSet } from './author/itemContracts.ts';
+
+// grading scheme (suggested weights)
+export { weightScheme } from './render/weights.ts';
+
 // grade
 export { grade, verify, gradeStructural, gradeTeachability, GRADER_VERSION } from './grade/index.ts';
 export type { VerifyReport, StructuralReport } from './grade/index.ts';

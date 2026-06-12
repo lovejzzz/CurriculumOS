@@ -100,14 +100,17 @@ export async function runRound(args: Args): Promise<{ results: DriveResult[]; pa
     }
   }
 
-  // drift gate (G6): in-app meter vs judge within 3 points or the round fails
+  // drift gate (G6): in-app meter vs judge within 2 points or the round fails.
+  // V0.0.3 tightened this from 3 → 2 — the meter was recalibrated to track the
+  // judge, so a wider band would let the meter drift back into over-crediting.
+  const DRIFT_TOLERANCE = 2;
   for (const [id, v] of judgeVerdicts) {
     const r = results.find((x) => x.id === id)!;
     const drift = Math.abs(v.score10 - r.teachability);
     lines.push(`judge (${id}): ${v.score10}/10 — "${v.verdictLine}"`);
     for (const pa of v.perArtifact) lines.push(`  - ${pa.artifact}: ${pa.score10}/10 — ${pa.deficiency}`);
-    if (drift > 3) {
-      lines.push(`  ✗ DRIFT GATE: |judge ${v.score10} − meter ${r.teachability}| = ${drift} > 3 — round fails (G6)`);
+    if (drift > DRIFT_TOLERANCE) {
+      lines.push(`  ✗ DRIFT GATE: |judge ${v.score10} − meter ${r.teachability}| = ${drift} > ${DRIFT_TOLERANCE} — round fails (G6)`);
       pass = false;
     }
   }

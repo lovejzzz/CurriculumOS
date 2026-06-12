@@ -157,7 +157,7 @@ function bloomCycle(i: number): PassB['outcomes'][number]['bloom'] {
   return order[i % order.length]!;
 }
 
-export function fakePassB(payload: { sessionIndex: number; title: string }): PassB {
+export function fakePassB(payload: { sessionIndex: number; title: string; discipline?: string }): PassB {
   const topic = payload.title.replace(/…$/, '');
   const i = payload.sessionIndex;
   // deterministic kernel candidate (the real model authors true subject matter;
@@ -165,6 +165,10 @@ export function fakePassB(payload: { sessionIndex: number; title: string }): Pas
   // exercise the same paths)
   const cjk = topic.match(/[㐀-鿿぀-ヿ]/g) ?? [];
   const romanization = Object.fromEntries(cjk.map((ch, n) => [ch, `rm${n + 1}`]));
+  // text-bearing disciplines get a locator excerpt (locator only — copyright-safe
+  // in the deterministic suite; the real model may add public-domain text)
+  const textBearing = payload.discipline === 'humanities' || payload.discipline === 'arts' || payload.discipline === 'language';
+  const excerpt = textBearing ? { work: topic, locator: `${topic} — assigned passage` } : undefined;
   return {
     sessionIndex: i,
     concepts: [{ name: topic }],
@@ -196,6 +200,7 @@ export function fakePassB(payload: { sessionIndex: number; title: string }): Pas
             }
           : {}),
         ...(Object.keys(romanization).length ? { romanization } : {}),
+        ...(excerpt ? { excerpt } : {}),
       },
     ],
   };
@@ -205,6 +210,64 @@ function fakeVoice(payload: { surfaceId: string; compiled: string }): { text: st
   // the fake voice returns the compiled text unchanged (it never improves
   // texture) — so a fake build is honest about voice being a no-op (Law 6).
   return { text: payload.compiled };
+}
+
+/** Deterministic Pass C: author contract-valid items from the grounding text so
+ *  the suite exercises the real item path (the standing rule). Distractors are
+ *  the kernel's actual misconceptions, parsed from the grounding. */
+function fakeItems(grounding: string): unknown {
+  const def = /Definition:\s*(.+)/.exec(grounding)?.[1]?.trim() ?? 'the session concept';
+  const concept = /Concept:\s*(.+)/.exec(grounding)?.[1]?.trim() ?? /Session:\s*(.+)/.exec(grounding)?.[1]?.trim() ?? 'this concept';
+  const miscons = [...grounding.matchAll(/Misconception:\s*(.+?)\s*—\s*Correction:\s*(.+)/g)].map((m) => ({ claim: m[1]!.trim(), correction: m[2]!.trim() }));
+  const c = concept.toLowerCase();
+  const correct = miscons[0]?.correction ?? def;
+  const d1 = miscons[0]?.claim ?? `A surface restatement of ${c} that ignores when it applies.`;
+  const d2 = miscons[1]?.claim ?? `A property adjacent to ${c} that learners over-extend.`;
+  const d3 = `A consequence of ${c} mistaken for its definition.`;
+  return {
+    items: [
+      {
+        kind: 'mc',
+        stem: `Which statement about ${c} best reflects how it actually works?`,
+        options: [
+          { text: correct, correct: true, rationale: 'Matches the kernel definition.' },
+          { text: d1, correct: false },
+          { text: d2, correct: false },
+          { text: d3, correct: false },
+        ],
+        answerKey: `The first option is correct: ${correct}`,
+        bloom: 'Understand',
+        concept,
+      },
+      {
+        kind: 'mc',
+        stem: `A student applies ${c} and gets a surprising result. Which check resolves whether the reasoning is sound?`,
+        options: [
+          { text: `Verify the steps against the definition of ${c} and a worked case.`, correct: true },
+          { text: d2, correct: false },
+          { text: d3, correct: false },
+          { text: d1, correct: false },
+        ],
+        answerKey: `Verify against the definition of ${c} and a worked example before trusting the result.`,
+        bloom: 'Apply',
+        concept,
+      },
+      {
+        kind: 'short-answer',
+        stem: `In your own words, explain ${c} and name one situation where it applies.`,
+        answerKey: `A correct response restates: ${def} — and gives a concrete applying situation.`,
+        bloom: 'Understand',
+        concept,
+      },
+      {
+        kind: 'applied',
+        stem: `Construct a new example that requires ${c}, then show the reasoning to the answer.`,
+        answerKey: `Any example that correctly exercises ${c} with sound step-by-step reasoning.`,
+        bloom: 'Apply',
+        concept,
+      },
+    ],
+  };
 }
 
 /** Deterministic TA: parse a few command shapes into EditOps (for tests and
@@ -253,6 +316,9 @@ export class FakeModelPort implements ModelPort {
         break;
       case 'chat':
         json = fakeChat((req.payload as { message: string }).message);
+        break;
+      case 'items':
+        json = fakeItems((req.payload as { grounding: string }).grounding);
         break;
       case 'intake':
       default:

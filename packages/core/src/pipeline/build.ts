@@ -10,12 +10,14 @@ import type { ClockPort, ModelPort, RandPort } from '../ports/index.ts';
 import { ulid } from '../ports/index.ts';
 import { fnv1a } from '../util.ts';
 import { render } from '../render/index.ts';
+import { weightScheme } from '../render/weights.ts';
 import { passASchema, passBSchema } from '../author/schema.ts';
 import { assembleSkeleton, mergePassB, attachKernelCandidates } from '../author/assemble.ts';
 import { lintSkeleton } from '../author/lint.ts';
 import { parseBrief, detectWeeks } from '../author/briefParse.ts';
 import { linkStage } from '../link/index.ts';
 import { judgeStage } from '../judge/index.ts';
+import { itemsStage } from '../author/items.ts';
 import { voiceStage } from '../voice/index.ts';
 import { verify, grade } from '../grade/index.ts';
 import { CostLedgerBuilder, BudgetExceededError, meteredModel } from './cost.ts';
@@ -34,6 +36,9 @@ export interface BuildPorts {
 
 export interface BuildOptions {
   voice?: boolean;
+  /** Pass C — real assessment items (V0.0.3). Defaults to the voice setting:
+   *  the paid quality passes travel together. */
+  items?: boolean;
   budgetUsd?: number;
   lens?: string | null;
   /** Extracted instructor materials (V2: stored whole, hashed, forever). The
@@ -72,6 +77,7 @@ function emptyCourse(id: string, briefText: string, atISO: string): Course {
 export async function buildCourse(briefText: string, ports: BuildPorts, opts: BuildOptions = {}): Promise<BuildOutcome> {
   const { model, clock, rand } = ports;
   const voiceEnabled = opts.voice !== false;
+  const itemsEnabled = opts.items ?? voiceEnabled; // the paid quality passes travel together
   const budget = opts.budgetUsd ?? Infinity;
   const ledger = new CostLedgerBuilder(budget);
   const emit = (s: PipelineState) => opts.onState?.(s, ledger.total());
@@ -175,7 +181,7 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
             reasoning: 'low',
             system: authorBSystem(),
             user: authorBUser(course.graph.courseTitle, s.index, s.title),
-            payload: { sessionIndex: s.index, title: s.title },
+            payload: { sessionIndex: s.index, title: s.title, discipline: course.graph.discipline },
           }),
         ),
       );
@@ -205,6 +211,10 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
     record('link', `${linkSummary.linked}/${linkSummary.total}`);
     emitState({ detail: linkSummary });
     markProvenance(course); // after link: concepts exist and genomeRefs are known
+    // grading-scheme provenance: name whether weights are stated or suggested (Law 6)
+    course.receipts.provenance.weights = weightScheme(course).suggested
+      ? ({ source: 'compiled' } as ProvenanceMark)
+      : ({ source: 'instructor' } as ProvenanceMark);
 
     // ── judge (prerequisite gaps + cited bridges) ──
     clock.tick?.();
@@ -212,6 +222,16 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
     const judgeSummary = judgeStage(course);
     record('judge', `${judgeSummary.gaps} gaps`);
     emitState({ detail: judgeSummary });
+
+    // ── Pass C: real assessment items (paid, budgeted, contract-linted) — runs
+    //    after link so items ground on the FINAL (genome-verified) kernels, and
+    //    before compile so the quiz renders from them ──
+    if (itemsEnabled) {
+      clock.tick?.();
+      const ires = await itemsStage(course, meteredModel(model, ledger, 'items'), { budgetUsd: Math.min(0.05, budget) });
+      record('items', `${ires.authored} authored, ${ires.fallbacks} fallback`);
+      markItemProvenance(course);
+    }
 
     // ── compile (deterministic render; $0) ──
     clock.tick?.();
@@ -300,6 +320,14 @@ function markVoiceProvenance(course: Course): void {
   for (const [sid, prose] of Object.entries(course.overlays.voice)) {
     if (prose.status === 'active' && prose.contractVersion > 0) {
       course.receipts.provenance[sid] = { source: 'voiced', model: 'voice', contractVersion: prose.contractVersion };
+    }
+  }
+}
+
+function markItemProvenance(course: Course): void {
+  for (const [sid, items] of Object.entries(course.overlays.items ?? {})) {
+    if (items.some((it) => it.status === 'active')) {
+      course.receipts.provenance[`items:${sid}`] = { source: 'voiced', model: 'items', contractVersion: 1 };
     }
   }
 }

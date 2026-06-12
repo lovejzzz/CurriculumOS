@@ -168,9 +168,28 @@ export interface StandardsCrosswalk {
 export interface Overlays {
   kernels: Record<ConceptId, Kernel>;
   voice: Record<SurfaceId, VoiceProse>;
+  /** Model-authored assessment items (Pass C), keyed by SessionId. Overlay
+   *  data like kernels/voice — the renderer reads them when present and falls
+   *  back to compiled items when absent or contract-failed (V0.0.3). */
+  items?: Record<SessionId, AssessmentItem[]>;
   /** Append-only. Replaying brief→edits deterministically reproduces the
    *  Course Object (no Date.now()/randomness inside core — Crucible law). */
   edits: EditEvent[]; // EditEvent defined in editOps.ts
+}
+
+/** A genuine assessment item (Pass C). Distractors trace to DISTINCT kernel
+ *  misconceptions; the key references the kernel; the stem leaks no answer
+ *  (itemContracts.ts lints all three). status:'fallback' = the compiled item
+ *  is used because authoring violated a contract (counted, never silent). */
+export interface AssessmentItem {
+  sessionId: SessionId;
+  conceptId?: ConceptId;
+  kind: 'mc' | 'short-answer' | 'applied';
+  stem: string;
+  options?: { text: string; correct: boolean; rationale?: string }[]; // mc only
+  answerKey: string;
+  bloom: Outcome['bloom'];
+  status: 'active' | 'fallback';
 }
 
 /** Subject-matter kernel — what makes content non-generic. Survives sync
@@ -183,6 +202,11 @@ export interface Kernel {
   citations: Citation[];
   sourceCue?: string; // "the assigned course materials" replacement
   romanization?: Record<string, string>; // language courses: term → rm
+  /** Source-text anchor (V0.0.3): a short public-domain excerpt OR a precise
+   *  locator for the session's primary text, so humanities lessons quote an
+   *  actual passage instead of a generic prompt (the judge: "no actual poem").
+   *  Only public-domain text is excerpted; anything else carries a locator. */
+  excerpt?: { text?: string; locator?: string; work?: string };
   /** Invalidation: kernels are keyed to the graph state that produced them. */
   basedOn: { outcomeHash: string; titleHash: string };
 }
