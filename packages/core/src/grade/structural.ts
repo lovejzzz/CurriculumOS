@@ -138,13 +138,14 @@ export function gradeStructural(course: Course): StructuralReport {
     if (a.kind !== 'slideDecks') continue;
     for (const b of a.blocks) {
       for (const line of (b.text ?? '').split('\n')) {
-        const trimmed = line.trim();
+        // closing quotes/brackets after terminal punctuation are fine ("…means 'sky.'")
+        const trimmed = line.trim().replace(/['"’”」』\])]+$/u, '');
         const words = trimmed.split(/\s+/).filter(Boolean);
         // code/math lines (=, →, operators) are not prose — exempt (the ledger
         // case was truncated PROSE; flagging worked-example code is a false
         // positive of exactly the kind the verdicts ledger recorded)
         const looksLikeCode = /[=→{}<>]|\(\)/.test(trimmed);
-        if (words.length > 6 && !looksLikeCode && !/[.!?:)%」。？]$/u.test(trimmed)) {
+        if (words.length > 6 && !looksLikeCode && !/[.!?:)%」。？！…]$/u.test(trimmed)) {
           findings.push(finding('P1', 'truncation', `slide bullet ends mid-clause in ${a.scope}`, trimmed.slice(0, 60)));
           break;
         }

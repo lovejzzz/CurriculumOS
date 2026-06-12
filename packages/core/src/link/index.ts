@@ -14,10 +14,31 @@ export interface LinkSummary {
   total: number;
 }
 
+/** Disciplines whose shards may satisfy a LOOSE (contains) match for a course.
+ *  A humanities course must never pull a health concept by substring (the
+ *  V0.0.1 audit: world-lit's Tang-poetry lesson contaminated with leukocyte
+ *  content from the nursing shard). Exact alias matches may still cross — a
+ *  stats concept legitimately named in a nursing course is real linkage. */
+const CONTAINS_COMPATIBLE: Record<string, string[]> = {
+  'stem-quant': ['stem-quant', 'stem-lab'],
+  'stem-lab': ['stem-lab', 'stem-quant'],
+  cs: ['cs'],
+  'social-science': ['social-science'],
+  health: ['health', 'stem-lab', 'stem-quant'], // A&P/biochem/biostats overlap
+  humanities: ['humanities'],
+  language: ['language'],
+  arts: ['arts'],
+  business: ['business', 'social-science'],
+  education: ['education'],
+  general: [], // unknown discipline → no loose cross-linking at all
+};
+
 export function linkStage(course: Course): LinkSummary {
   let linked = 0;
   let missed = 0;
   const g = course.graph;
+  const courseDisc = g.discipline;
+  const compatible = new Set(CONTAINS_COMPATIBLE[courseDisc] ?? [courseDisc]);
 
   for (const concept of g.concepts) {
     let best: ReturnType<typeof linkConcept> = null;
@@ -25,6 +46,9 @@ export function linkStage(course: Course): LinkSummary {
     for (const shardId of Object.keys(SHARDS)) {
       const hit = linkConcept(shardId, concept.name);
       if (hit) {
+        // a loose (contains) match only counts from a discipline-compatible
+        // shard; exact alias matches may cross disciplines (real linkage)
+        if (hit.matchedOn !== 'exact' && !compatible.has(SHARDS[shardId]!.discipline)) continue;
         const score = hit.matchedOn === 'exact' ? 1000 : hit.conceptKey.length;
         if (score > bestLen) {
           best = hit;

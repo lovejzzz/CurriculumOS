@@ -11,7 +11,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildPackage, auditPackage } from '@curriculumos/core';
+import { buildPackage, auditPackage, gradeStructural } from '@curriculumos/core';
 import { driveCourse, type DriveResult } from './driver.ts';
 import { judgeCourse, type JudgeVerdict } from './judge.ts';
 // the fixtures are plain data (.mjs) copied from the handoff kit
@@ -90,6 +90,16 @@ export async function runRound(args: Args): Promise<{ results: DriveResult[]; pa
   }
   lines.push('');
 
+  // findings detail for any course under 90 — a 70/C must explain itself in the report
+  for (const r of results) {
+    if (r.structural < 90) {
+      const s = gradeStructural(r.course);
+      lines.push(`findings (${r.id}, ${r.structural}/${r.letter}):`);
+      for (const f of s.findings.slice(0, 10)) lines.push(`  - ${f.severity} [${f.dimension}] ${f.detail} :: ${f.evidence.slice(0, 70)}`);
+      lines.push('');
+    }
+  }
+
   // drift gate (G6): in-app meter vs judge within 3 points or the round fails
   for (const [id, v] of judgeVerdicts) {
     const r = results.find((x) => x.id === id)!;
@@ -113,7 +123,14 @@ export async function runRound(args: Args): Promise<{ results: DriveResult[]; pa
 
   // P0 honesty: no course may carry an unrepaired P0 (they'd block, but report it)
   const blocked = results.filter((r) => r.terminal !== 'ready');
-  if (blocked.length) lines.push(`blocked courses: ${blocked.map((b) => `${b.id}(${b.blockedReason})`).join(', ')}`);
+  if (blocked.length) {
+    lines.push(`blocked courses: ${blocked.map((b) => `${b.id}(${b.blockedReason})`).join(', ')}`);
+    for (const b of blocked) {
+      // surface the NAMED error from the build record (Law 6)
+      const errState = b.course.receipts.builds.at(-1)?.states.find((s) => s.state === 'error');
+      if (errState?.detail) lines.push(`  ${b.id}: ${errState.detail}`);
+    }
+  }
 
   lines.push('');
   lines.push(`## verdict: ${pass ? 'PASS' : 'FAIL'}`);

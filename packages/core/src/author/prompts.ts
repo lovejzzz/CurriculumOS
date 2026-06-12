@@ -18,11 +18,13 @@ export function authorASystem(): string {
   ].join('\n');
 }
 
-export function authorAUser(brief: string, retry: boolean): string {
+export function authorAUser(brief: string, retry: boolean, violations?: string[]): string {
   return [
-    retry
-      ? 'Your previous skeleton was degenerate (a recurring assessment was not expanded per session, or too few sessions). Fix it: expand every weekly cadence to one entry per covered session, and produce one session per lesson.'
-      : '',
+    retry && violations?.length
+      ? `Your previous output violated the schema contract. The violated rules, quoted: ${violations.join('; ')}. Fix exactly these — match the JSON shape precisely.`
+      : retry
+        ? 'Your previous skeleton was degenerate (a recurring assessment was not expanded per session, or too few sessions). Fix it: expand every weekly cadence to one entry per covered session, and produce one session per lesson.'
+        : '',
     'Author the course skeleton as JSON for this brief:',
     '"""',
     brief,

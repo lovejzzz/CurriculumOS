@@ -18,21 +18,32 @@ export const disciplineEnum = z.enum([
   'general',
 ]);
 
+/** Boundary tolerance (Postel's law, scoped): models in JSON mode emit
+ *  explicit nulls for unstated optionals and occasionally invent a kind label
+ *  ("lab-material"). Structure stays STRICT (sessions, ids, cadence — the
+ *  things correctness rides on); harmless label variance coerces with a
+ *  fallback instead of blocking the whole build (contract A5: fail the item,
+ *  never the build, for what the item can absorb). */
+const optionalString = z
+  .string()
+  .nullish()
+  .transform((v) => (v === null || v === '' ? undefined : v));
+
 export const passASchema = z.object({
   courseTitle: z.string().min(1),
-  discipline: disciplineEnum,
-  term: z.string().optional(),
+  discipline: disciplineEnum.catch('general'),
+  term: optionalString,
   sessions: z.array(z.object({ title: z.string().min(1) })).min(1),
   assessments: z
     .array(
       z.object({
         title: z.string().min(1),
-        kind: z.enum(['quiz', 'exam', 'oral', 'in-class', 'graded-artifact', 'project', 'discussion']),
-        weightPct: z.number().min(0).max(100).nullable(),
+        kind: z.enum(['quiz', 'exam', 'oral', 'in-class', 'graded-artifact', 'project', 'discussion']).catch('graded-artifact'),
+        weightPct: z.number().min(0).max(100).nullish().transform((v) => v ?? null),
         cadence: z.enum(['once', 'per-session']),
         announcedInSession: z.number().int().min(1),
         dueInSession: z.number().int().min(1),
-        coveredSessions: z.array(z.number().int().min(1)).optional(),
+        coveredSessions: z.array(z.number().int().min(1)).nullish().transform((v) => v ?? undefined),
       }),
     )
     .min(1),
@@ -40,9 +51,9 @@ export const passASchema = z.object({
     .array(
       z.object({
         title: z.string().min(1),
-        author: z.string().optional(),
-        locator: z.string().optional(),
-        kind: z.enum(['book', 'article', 'chapter', 'media', 'website', 'dataset']),
+        author: optionalString,
+        locator: optionalString,
+        kind: z.enum(['book', 'article', 'chapter', 'media', 'website', 'dataset']).catch('article'),
         inSessions: z.array(z.number().int().min(1)).min(1),
       }),
     )
@@ -51,7 +62,7 @@ export const passASchema = z.object({
     .array(
       z.object({
         title: z.string().min(1),
-        kind: z.enum(['tool', 'software', 'equipment', 'site', 'document']),
+        kind: z.enum(['tool', 'software', 'equipment', 'site', 'document']).catch('document'),
         inSessions: z.array(z.number().int().min(1)).min(1),
       }),
     )

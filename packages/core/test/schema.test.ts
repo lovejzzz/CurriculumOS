@@ -42,6 +42,31 @@ describe('core/schema (M0 bar 1)', () => {
     expect(() => validateCourse(course)).toThrow(CourseValidationError);
   });
 
+  it('Pass A boundary tolerates harmless model variance (term:null, invented kinds) — the V0.0.1 audit regression', async () => {
+    const { passASchema } = await import('../src/author/schema.ts');
+    // exactly what gpt-5.4-mini returned in the failed round: explicit nulls +
+    // an out-of-enum resource kind; the build must absorb these, not block
+    const parsed = passASchema.safeParse({
+      courseTitle: 'Physical Geology',
+      discipline: 'stem-lab',
+      term: null,
+      sessions: [{ title: 'minerals' }, { title: 'igneous rocks' }],
+      assessments: [
+        { title: 'Weekly lab', kind: 'graded-artifact', weightPct: null, cadence: 'per-session', announcedInSession: 1, dueInSession: 1, coveredSessions: [1, 2] },
+      ],
+      readings: [{ title: 'Earth', author: null, locator: null, kind: 'textbook', inSessions: [1] }],
+      resources: [{ title: 'hand-specimen kit', kind: 'lab-material', inSessions: [1] }],
+    });
+    expect(parsed.success, JSON.stringify(parsed.success ? '' : parsed.error.issues)).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.term).toBeUndefined(); // null → absent, honestly
+      expect(parsed.data.resources[0]!.kind).toBe('document'); // coerced fallback, not a blocked build
+      expect(parsed.data.readings[0]!.kind).toBe('article');
+    }
+    // structure stays STRICT: a missing sessions array still fails
+    expect(passASchema.safeParse({ courseTitle: 'X', discipline: 'general', assessments: [] }).success).toBe(false);
+  });
+
   it('rejects a non-dense session index permutation', async () => {
     const course = await buildEcon();
     course.graph.sessions[0]!.index = 99;

@@ -68,6 +68,33 @@ describe('pipeline behavior (M1/M2)', () => {
     if (proposed) expect((course.receipts.provenance[`kernel:${proposed.id}`] as any).source).toBe('voiced');
   });
 
+  it('never cross-contaminates disciplines via loose matches (V0.0.1 audit: poetry got leukocytes)', async () => {
+    // a humanities course must not pull health/nursing concepts by substring
+    const WORLDLIT = 'World Literature, a 14-lesson undergraduate seminar with weekly reading responses. Lessons cover: the oral epic tradition; classical drama; Tang poetry; frame narratives; the medieval journey; comparative reading; postcolonial literature; magical realism; modernist poetry; the fantastic; contemporary global fiction; translation; close reading methods; and a final paper.';
+    const { course } = await buildCourse(WORLDLIT, ports(), { voice: false });
+    const shards = new Set(course.graph.concepts.map((c) => c.genomeRef?.shard).filter(Boolean));
+    expect(shards.has('nursing'), 'a literature course must never link the nursing shard').toBe(false);
+    expect(shards.has('nutrition')).toBe(false);
+    // no kernel may carry off-discipline subject matter
+    const kernelText = Object.values(course.overlays.kernels).map((k) => k.definition).join(' ').toLowerCase();
+    expect(kernelText).not.toContain('leukocyte');
+    expect(kernelText).not.toContain('platelet');
+  });
+
+  it('assembles a graph with model-returned readings AND resources (V0.0.1 audit: the TDZ crash)', async () => {
+    // geology names lab kits → the fake now emits resources; the assembler's
+    // per-session counter must read the array it is building without a temporal
+    // dead zone (the real round crashed here as a phantom "provider-failure")
+    const GEO = 'Physical Geology, a 14-lesson undergraduate course with weekly labs using hand-specimen kits. Lessons cover: minerals and identification; silicate structures; igneous rocks; sedimentary rocks; metamorphic rocks; the rock cycle; plate tectonics; earthquakes; volcanic hazards; weathering; streams and groundwater; geologic time; field synthesis; and a final exam.';
+    const out = await buildCourse(GEO, ports(), { voice: false });
+    expect(out.terminal).toBe('ready');
+    expect(out.course.graph.resources.length).toBeGreaterThan(0); // resources assembled, not crashed
+    // ids are well-formed and unique
+    const ids = out.course.graph.resources.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const r of out.course.graph.resources) expect(r.id).toMatch(/^X[1-9]\d*\.[1-9]\d*$/);
+  });
+
   it('renders a romanization (Terms) block for non-Latin kernel terms (K2)', async () => {
     const { course } = await buildCourse(MANDARIN_BRIEF, ports(), { voice: false });
     const s1 = course.graph.sessions.find((s) => s.id === 'S1')!;

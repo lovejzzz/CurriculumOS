@@ -77,11 +77,17 @@ export function assembleSkeleton(a: PassA): CourseGraph {
     }
   }
 
-  const readings: Reading[] = a.readings.map((r, i) => {
+  // explicit accumulation — the per-session counter reads the array being
+  // built, so we push rather than .map (a .map callback referencing its own
+  // const is a temporal-dead-zone crash that only fires when the model returns
+  // readings/resources — invisible to the fake engine; the V0.0.1 audit's
+  // geology/world-lit "provider-failure" was really this).
+  const readings: Reading[] = [];
+  for (const r of a.readings) {
     const inSessions = r.inSessions.filter((n) => n >= 1 && n <= sessions.length);
     const first = inSessions[0] ?? 1;
-    const n = readings_count(readings, first) + 1;
-    return {
+    const n = readings.filter((x) => x.id.startsWith(`R${first}.`)).length + 1;
+    readings.push({
       id: `R${first}.${n}` as ReadingId,
       sessionIds: (inSessions.length ? inSessions : [1]).map(sid),
       title: r.title,
@@ -89,21 +95,22 @@ export function assembleSkeleton(a: PassA): CourseGraph {
       ...(r.locator ? { locator: r.locator } : {}),
       kind: r.kind,
       provenance: 'instructor-named' as const,
-    };
-  });
+    });
+  }
 
-  const resources: Resource[] = a.resources.map((r) => {
+  const resources: Resource[] = [];
+  for (const r of a.resources) {
     const inSessions = r.inSessions.filter((n) => n >= 1 && n <= sessions.length);
     const first = inSessions[0] ?? 1;
     const n = resources.filter((x) => x.id.startsWith(`X${first}.`)).length + 1;
-    return {
+    resources.push({
       id: `X${first}.${n}` as ResourceId,
       sessionIds: (inSessions.length ? inSessions : [1]).map(sid),
       title: r.title,
       kind: r.kind,
       provenance: 'instructor-named' as const,
-    };
-  });
+    });
+  }
 
   return {
     courseTitle: a.courseTitle,
@@ -117,10 +124,6 @@ export function assembleSkeleton(a: PassA): CourseGraph {
     resources,
     bridges: [],
   };
-}
-
-function readings_count(readings: Reading[], first: number): number {
-  return readings.filter((x) => x.id.startsWith(`R${first}.`)).length;
 }
 
 /** Merge a Pass B batch (one session's concepts + outcomes) into the graph. */

@@ -138,7 +138,18 @@ export function fakePassA(brief: string): PassA {
     if (m[1]) readings.push({ title: m[1].trim(), kind: 'chapter', locator: `ch. ${m[2]}`, inSessions: [Math.min(3, n)] });
   }
 
-  return { courseTitle, discipline, sessions, assessments, readings, resources: [] };
+  // resources: lab/studio/clinical courses name supporting materials per session
+  // (A3). Emitting these in the FAKE keeps the deterministic suite exercising
+  // the same assembler paths the real model hits — the V0.0.1 audit's hidden
+  // readings/resources crash would have been caught here, not in a real round.
+  const resources: PassA['resources'] = [];
+  const resourceCue = /\b(lab|kit|specimen|studio|clinical|equipment|software|instrument)\b/i.exec(lower);
+  if (resourceCue) {
+    const kind: PassA['resources'][number]['kind'] = /software/.test(lower) ? 'software' : /kit|specimen|instrument|equipment/.test(lower) ? 'equipment' : 'document';
+    for (let wk = 1; wk <= n; wk++) resources.push({ title: `Session ${wk} materials`, kind, inSessions: [wk] });
+  }
+
+  return { courseTitle, discipline, sessions, assessments, readings, resources };
 }
 
 function bloomCycle(i: number): PassB['outcomes'][number]['bloom'] {

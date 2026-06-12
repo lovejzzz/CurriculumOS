@@ -121,6 +121,7 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
     const statedWeeks = detectWeeks(fullBrief);
     let skeleton = null as ReturnType<typeof passASchema.parse> | null;
     let parseFailures = 0;
+    let lastViolations: string[] = [];
     while (!skeleton) {
       clock.tick?.();
       record('author', `A attempt ${ctx.passARetries + parseFailures + 1}`);
@@ -129,18 +130,21 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
         purpose: 'authorA',
         reasoning: 'low', // Pass A at low reasoning — the biggest cost win (trap #3)
         system: authorASystem(),
-        user: authorAUser(fullBrief, ctx.passARetries + parseFailures > 0),
+        user: authorAUser(fullBrief, ctx.passARetries + parseFailures > 0, lastViolations),
         payload: { brief: fullBrief },
       });
       ledger.add('author', res);
       const parsed = passASchema.safeParse(res.json);
       if (!parsed.success) {
+        // retry once with the violated rules QUOTED (020-contracts intro)
+        lastViolations = parsed.error.issues.slice(0, 5).map((i) => `${i.path.join('.')}: ${i.message}`);
         parseFailures += 1;
         if (parseFailures >= 2) return finishBlocked('contract-violation');
         continue;
       }
       const lint = lintSkeleton(parsed.data, statedWeeks);
       if (!lint.ok) {
+        lastViolations = lint.reasons; // the degenerate rule, quoted, rides the retry
         const next = stepTo({ type: 'PASS_A_DEGENERATE' }); // reducer: retry once, then blocked
         if (next.state === 'blocked') return finishBlocked('degenerate-skeleton');
         continue;
@@ -262,6 +266,8 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
   } catch (err) {
     if (err instanceof IllegalTransitionError) throw err; // a machine bug is a programming error — never a quiet blocked
     if (err instanceof BudgetExceededError) return finishBlocked('budget-exceeded');
+    // Law 6: the failure is NAMED in the build record, never a bare reason code
+    record('error', err instanceof Error ? err.message.slice(0, 200) : 'unknown failure');
     return finishBlocked('provider-failure');
   }
 }

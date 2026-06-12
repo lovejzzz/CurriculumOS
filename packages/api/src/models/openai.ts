@@ -48,7 +48,7 @@ export class OpenAIModelPort implements ModelPort {
     if (req.reasoning && this.cfg.supportsReasoningEffort !== false) body.reasoning_effort = req.reasoning;
 
     const baseUrl = this.cfg.baseUrl ?? 'https://api.openai.com/v1';
-    const maxRetries = this.cfg.maxRetries ?? 2;
+    const maxRetries = this.cfg.maxRetries ?? 4;
     let lastErr: unknown;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -60,9 +60,14 @@ export class OpenAIModelPort implements ModelPort {
         });
         if (!resp.ok) {
           const text = await resp.text().catch(() => '');
-          // retry transient 429/5xx; fail fast on 4xx auth/shape errors
+          // retry transient 429/5xx; fail fast on 4xx auth/shape errors.
+          // 429s are TPM windows — Retry-After (when sent) or exponential
+          // seconds-scale backoff; a 250ms wait just burns the retry budget
+          // (the V0.0.1 audit's geology/world-lit provider-failures).
           if ((resp.status === 429 || resp.status >= 500) && attempt < maxRetries) {
-            await delay(250 * (attempt + 1));
+            const retryAfter = Number(resp.headers.get('retry-after'));
+            const backoffMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 1000 * 3 ** attempt; // 1s, 3s, 9s, 27s
+            await delay(Math.min(backoffMs, 30_000));
             continue;
           }
           throw new ProviderError(this.cfg.label ?? 'openai', resp.status, redact(text).slice(0, 300));
