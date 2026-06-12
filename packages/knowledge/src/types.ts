@@ -18,6 +18,10 @@ export interface GenomeConcept {
   definition: string;
   misconceptions: { claim: string; correction: string }[];
   workedExample?: { setup: string; steps: string[]; answer: string };
+  /** K2: non-Latin terms with romanization (lang shard). */
+  romanization?: Record<string, string>;
+  /** source-text anchor: public-domain excerpt or precise locator (lit shard). */
+  excerpt?: { text?: string; locator?: string; work?: string };
   citations: GenomeCitation[];
 }
 

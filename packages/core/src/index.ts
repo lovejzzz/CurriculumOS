@@ -27,6 +27,7 @@ export type { MachineContext } from './machine/reducer.ts';
 // ports
 export * from './ports/index.ts';
 export { FakeModelPort, fakePassA, fakePassB } from './ports/fakeModel.ts';
+export { FakeRetrievalPort } from './ports/fakeRetrieval.ts';
 
 // edits
 export { applyBatch, PreconditionError, InvalidOpError } from './edits/apply.ts';
@@ -51,6 +52,9 @@ export type { ZipEntry } from './render/export/zip.ts';
 // knowledge stages
 export { linkStage } from './link/index.ts';
 export { judgeStage } from './judge/index.ts';
+export { retrieveStage, extensionShard } from './link/retrieve.ts';
+export type { RetrievalSummary } from './link/retrieve.ts';
+export { workMatches, topicMatches } from './link/relevance.ts';
 
 // voice
 export { voiceStage, collectSurfaces, voiceRefreshSurface, VOICE_BUDGET_USD } from './voice/index.ts';

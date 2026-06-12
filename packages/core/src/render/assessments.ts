@@ -125,12 +125,17 @@ function mcItem(course: Course, concept: Concept, idx: number, ns: string, misco
   const correct = m?.correction ?? k?.definition ?? `${concept.name} as defined in this session.`;
   const wrong = m?.claim ?? `A common misunderstanding of ${concept.name}.`;
   // distractors rotate by item index so no fixed option string repeats across a section (trap #9)
-  const options = [
-    correct,
+  const distractors = [
     wrong,
     `${rotate(DISTRACTOR_UNRELATED, idx).replace('%s', concept.name)}.`,
     `${rotate(DISTRACTOR_OTHER, idx + 1).replace('%s', concept.name)}.`,
   ];
+  // the correct option's POSITION rotates deterministically — an answer key
+  // that always reads "A" is a real defect the judge failed (V0.0.4 round)
+  const correctPos = idx % 4;
+  const options = [...distractors];
+  options.splice(correctPos, 0, correct);
+  const letter = String.fromCharCode(65 + correctPos);
   return {
     kind: 'mc',
     entityId: concept.id,
@@ -138,25 +143,30 @@ function mcItem(course: Course, concept: Concept, idx: number, ns: string, misco
     text: rotate(MC_QUESTION_FRAMES, idx).replace('%s', concept.name),
     rows: options.map((o, i) => [String.fromCharCode(65 + i), o]),
     meta: {
-      answer: 'A',
+      answer: letter,
       // rotate the correct-answer phrasing and explanation lead so no shingle repeats (trap #9)
-      explanation: `${rotate(MC_CORRECT_STEMS, idx)} A. ${rotate(MC_EXPLANATION_LEADS, idx + 1)} ${correct}`,
+      explanation: `${rotate(MC_CORRECT_STEMS, idx)} ${letter}. ${rotate(MC_EXPLANATION_LEADS, idx + 1)} ${correct}`,
     },
   };
 }
 
-/** Render one authored Pass C item to a quiz block. */
+/** Render one authored Pass C item to a quiz block. The correct option's
+ *  position rotates deterministically — models habitually list the correct
+ *  answer first, and an all-A key is a real defect (the V0.0.4 judge). */
 function authoredItemBlock(item: import('../schema/courseObject.ts').AssessmentItem, ns: string, n: number): RenderBlock {
   if (item.kind === 'mc' && item.options) {
-    const correctIdx = item.options.findIndex((o) => o.correct);
-    const letter = String.fromCharCode(65 + Math.max(0, correctIdx));
+    const correct = item.options.filter((o) => o.correct);
+    const distractors = item.options.filter((o) => !o.correct);
+    const correctPos = correct.length === 1 ? n % item.options.length : Math.max(0, item.options.findIndex((o) => o.correct));
+    const arranged = correct.length === 1 ? [...distractors.slice(0, correctPos), ...correct, ...distractors.slice(correctPos)] : item.options;
+    const letter = String.fromCharCode(65 + arranged.findIndex((o) => o.correct));
     return {
       kind: 'mc',
       entityId: item.conceptId,
       heading: `${ns}.${n} (multiple choice)`,
       text: item.stem,
-      rows: item.options.map((o, i) => [String.fromCharCode(65 + i), o.text]),
-      meta: { answer: item.answerKey, explanation: `Correct: ${letter}. ${item.answerKey}` },
+      rows: arranged.map((o, i) => [String.fromCharCode(65 + i), o.text]),
+      meta: { answer: `${letter} — ${item.answerKey}`, explanation: `Correct: ${letter}. ${item.answerKey}` },
     };
   }
   return {

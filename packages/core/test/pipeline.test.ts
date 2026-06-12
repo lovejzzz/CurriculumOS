@@ -49,15 +49,32 @@ describe('pipeline behavior (M1/M2)', () => {
   });
 
   it('authors kernels even when the genome misses (the model proposes; §7)', async () => {
-    // mandarin has no language shard, so every concept misses the cache — yet
-    // each must still carry subject matter (a model-proposed kernel candidate)
-    const { course } = await buildCourse(MANDARIN_BRIEF, ports(), { voice: false });
+    // art history has no shard, so every concept misses the cache — yet each
+    // must still carry subject matter (a model-proposed kernel candidate).
+    // (mandarin/world-lit graduated out of this role in V0.0.4: lang/lit shards.)
+    const ART =
+      'Survey of Art History, a 12-lesson introductory college course with weekly image analyses and a midterm. Lessons cover: how to look at a work of art; Egyptian art; Greek and Roman art; Byzantine art; Gothic art; the Italian Renaissance; Baroque art; Neoclassicism; Romanticism; Impressionism; modernism; and contemporary art with a final paper.';
+    const { course } = await buildCourse(ART, ports(), { voice: false });
     const linked = course.graph.concepts.filter((c) => c.genomeRef).length;
     expect(linked).toBe(0); // genuinely a cache miss
     const withKernel = course.graph.concepts.filter((c) => course.overlays.kernels[c.id]).length;
     expect(withKernel).toBe(course.graph.concepts.length); // …but every concept has a kernel
     // candidates carry NO citations (K3: the model may not invent them)
     for (const k of Object.values(course.overlays.kernels)) expect(k.citations).toHaveLength(0);
+  });
+
+  it('V0.0.4 bar: mandarin and world-lit link the new lang/lit shards (≥8 each, from 0)', async () => {
+    const mandarin = await buildCourse(MANDARIN_BRIEF, ports(), { voice: false });
+    const mLinked = mandarin.course.graph.concepts.filter((c) => c.genomeRef?.shard === 'lang').length;
+    expect(mLinked, 'mandarin should link the lang shard').toBeGreaterThanOrEqual(8);
+    const WL =
+      'World Literature, a 14-lesson undergraduate seminar with weekly reading responses. Lessons cover: what counts as world literature; the oral epic tradition with Gilgamesh and Homer; classical drama with Sophocles; Tang poetry with Li Bai and Du Fu; the Thousand and One Nights and frame narratives; Dante; comparative reading methods; translation and cultural mediation; postcolonial literature with Achebe; magical realism with García Márquez; modernist poetry; the fantastic with Borges; contemporary global fiction; and a final paper.';
+    const worldlit = await buildCourse(WL, ports(), { voice: false });
+    const wLinked = worldlit.course.graph.concepts.filter((c) => c.genomeRef?.shard === 'lit').length;
+    expect(wLinked, 'world-lit should link the lit shard').toBeGreaterThanOrEqual(8);
+    // genome excerpts flow into kernels (the judge: "no actual poem" → a poem)
+    const withExcerpt = Object.values(worldlit.course.overlays.kernels).filter((k) => k.excerpt?.text || k.excerpt?.locator);
+    expect(withExcerpt.length).toBeGreaterThanOrEqual(4);
   });
 
   it('marks model-proposed kernels distinctly from genome-verified ones (Law 6)', async () => {

@@ -89,10 +89,17 @@ export function renderLessonPlan(course: Course, s: Session): RenderedArtifact {
     });
   }
 
-  // Kernel-rendered block — only when concepts have kernels (never fake subject matter)
+  // Kernel-rendered block — only when concepts have kernels (never fake subject
+  // matter). Concepts sharing one genome entry render its kernel ONCE — three
+  // aliases of lit/tang-poetry must not produce three identical sections (the
+  // V0.0.4 judge: "internally broken and repetitive, duplicated sections").
+  const renderedKernelKeys = new Set<string>();
   for (const c of concepts) {
     const k = kernelFor(course, c.id);
     if (!k) continue;
+    const kernelKey = course.graph.concepts.find((x) => x.id === c.id)?.genomeRef?.conceptKey ?? k.definition;
+    if (renderedKernelKeys.has(kernelKey)) continue;
+    renderedKernelKeys.add(kernelKey);
     const children: RenderBlock[] = [{ kind: 'definition', entityId: c.id, text: k.definition }];
     if (k.misconceptions[0]) {
       children.push({
@@ -179,8 +186,13 @@ export function renderSlideDeck(course: Course, s: Session): RenderedArtifact {
   });
 
   let visuals = 0;
+  const deckKernelKeys = new Set<string>();
   for (const c of concepts) {
     const k = kernelFor(course, c.id);
+    // shared genome entry → one set of slides, not three identical ones
+    const kernelKey = course.graph.concepts.find((x) => x.id === c.id)?.genomeRef?.conceptKey ?? c.name;
+    if (deckKernelKeys.has(kernelKey)) continue;
+    deckKernelKeys.add(kernelKey);
     slides.push({
       kind: 'slide',
       entityId: c.id,
@@ -284,14 +296,21 @@ export function renderStudyGuide(course: Course, s: Session): RenderedArtifact {
   const lead = `${rotate(GUIDE_LEADS, i)} ${(concepts[0]?.name ?? s.title).toLowerCase()}.`;
   blocks.push(voiceBlock(course, `guide:${s.id}:narrative`, 'narrative', lead, 'Overview'));
 
-  blocks.push({
-    kind: 'key-concepts',
-    heading: 'Key concepts',
-    rows: concepts.map((c) => {
-      const k = kernelFor(course, c.id);
-      return [c.id, c.name, k?.definition ?? '—'];
-    }),
-  });
+  // concepts sharing a genome entry list once, names merged (no duplicate rows)
+  const conceptRows: string[][] = [];
+  const guideKernelKeys = new Map<string, number>();
+  for (const c of concepts) {
+    const k = kernelFor(course, c.id);
+    const key = course.graph.concepts.find((x) => x.id === c.id)?.genomeRef?.conceptKey ?? c.name;
+    const existing = guideKernelKeys.get(key);
+    if (existing !== undefined) {
+      conceptRows[existing]![1] = `${conceptRows[existing]![1]} / ${c.name}`;
+      continue;
+    }
+    guideKernelKeys.set(key, conceptRows.length);
+    conceptRows.push([c.id, c.name, k?.definition ?? '—']);
+  }
+  blocks.push({ kind: 'key-concepts', heading: 'Key concepts', rows: conceptRows });
 
   // K2 / verdict ledger ("no-study-guide-pairs-hanzi-with-tone-marked-pinyin"):
   // every non-Latin term renders WITH its romanization in the study guide

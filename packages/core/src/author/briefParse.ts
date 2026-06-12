@@ -10,10 +10,11 @@ const DISCIPLINE_CUES: { lens: DisciplineLens; cues: RegExp }[] = [
   { lens: 'stem-lab', cues: /\b(geology|chemistry|biology|lab|specimen|mineral|rock)\b/i },
   { lens: 'stem-quant', cues: /\b(statistics|calculus|physics|astronomy|mathematics|probability)\b/i },
   { lens: 'language', cues: /\b(mandarin|spanish|french|language|pinyin|vocabulary|conversation)\b/i },
+  // arts BEFORE humanities: "art history" must not fall into the bare 'history' cue
+  { lens: 'arts', cues: /\b(music theory|art history|studio art|painting|sculpture|drawing|ear-training)\b/i },
   { lens: 'humanities', cues: /\b(literature|philosophy|history|poetry|essay|seminar|reading responses)\b/i },
   { lens: 'business', cues: /\b(business|marketing|finance|ethics|management|economics of the firm)\b/i },
   { lens: 'health', cues: /\b(nursing|nutrition|anatomy|physiology|clinical|patient|health)\b/i },
-  { lens: 'arts', cues: /\b(music|art history|studio|painting|composition|theory)\b/i },
   { lens: 'social-science', cues: /\b(economics|microeconomics|macroeconomics|psychology|sociology|political)\b/i },
   { lens: 'education', cues: /\b(pedagogy|curriculum|teaching practicum|classroom management)\b/i },
 ];

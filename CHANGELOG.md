@@ -1,5 +1,45 @@
 # Changelog
 
+## V0.0.4 — June 12, 2026
+
+The knowledge flywheel begins (docs/ROADMAP-V0.0.4.md). The V0.0.3 residual was
+unambiguous: the judge rewards verified knowledge, and the two courses with ZERO
+genome coverage (mandarin, world-lit) sat at judge 5–6.
+
+**Real judged round (gpt-5.4-mini, voice + items + live retrieval):**
+
+| | linked (was) | judge (was) | drift |
+| --- | --- | --- | --- |
+| mandarin | **8 (0)** | **7 (6)** ✓ bar met | 0 |
+| world-lit | **19 (0)** | 5 (5–6) — residual named below | 2 ✓ gate |
+
+- **`lit` and `lang` shards** — citation-bearing kernels for the two uncovered
+  disciplines, with public-domain excerpts (Du Fu, Dante, Eliot, Gilgamesh,
+  Sophocles…) and real hanzi + tone-marked pinyin throughout. Mandarin's study
+  guide judged 8/10 ("content-rich").
+- **RetrievalPort + live providers** — OpenLibrary (works) and OpenAlex (topics)
+  at the API edge: instructor-named readings gain verified external ids with the
+  title byte-identical (R1); failures are named in the build record (Law 6).
+- **The citation relevance gate** — bidirectional distinctive-token evidence;
+  calibration encodes both prototype scars ("Cooking with Statistics" rejects;
+  partial-title-with-author passes).
+- **Kernel promotion + the extension store** — cache-missed concepts corroborated
+  by a provider topic gain provider citations, flip provenance to `retrieved`,
+  and persist under `.data/genome/`; the SECOND same-discipline build links them
+  at **$0** (deterministically tested — the flywheel turns).
+- **Two judge-caught rendering defects fixed:** concepts sharing one genome entry
+  rendered duplicate kernel sections (world-lit S4 plan: 3 → 5); the correct MC
+  option was always "A" — positions now rotate deterministically in both the
+  compiled and authored paths.
+- Discipline cue fix ("art history" no longer classifies as humanities via the
+  bare 'history' cue); over-generic cross-discipline aliases removed.
+
+88 tests green (relevance calibration, R1 enrichment, flywheel cache hit, named
+misses — all offline via a fake retrieval port). **Honest residual:** world-lit
+judge 5 — its S4 quiz fell back to compiled items (2/10, "absurd distractors")
+and plans still need text-specific activities; Pass C reliability +
+instrumentation is the next iteration's first target.
+
 ## V0.0.2 — June 12, 2026 (audit + fixes, folded into V0.0.3)
 
 The V0.0.2 roadmap planned the judge-gap work; before it shipped, a real judged

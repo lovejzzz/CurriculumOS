@@ -102,6 +102,27 @@ export interface RandPort {
   next(): number;
 }
 
+/** Retrieval boundary (founding §7: the model proposes, the PROVIDERS verify).
+ *  Implementations: OpenAlex/OpenLibrary at the API edge; a deterministic fake
+ *  in tests. Used to enrich instructor-named readings with verified metadata
+ *  (R1: enrich, never replace) and to corroborate kernel candidates for
+ *  promotion into the genome extension (the flywheel's intake). */
+export interface RetrievalHit {
+  title: string;
+  author?: string;
+  year?: number;
+  externalIds: { openalex?: string; openlibrary?: string; isbn?: string; doi?: string };
+  /** provider-reported subjects/topics — the relevance gate's raw material */
+  subjects?: string[];
+}
+
+export interface RetrievalPort {
+  /** Find a published work by title (+author hint). null = honest miss. */
+  findWork(query: { title: string; author?: string }): Promise<RetrievalHit | null>;
+  /** Find a topical entity for a concept name (e.g. an OpenAlex concept). */
+  findTopic(query: { name: string; discipline?: string }): Promise<RetrievalHit | null>;
+}
+
 /** Persistence boundary (ADR-06). Implementations: memory (tests), JSON file
  *  (server), IndexedDB (browser home). Core never touches storage directly —
  *  the API layer owns load/save around pure core calls. */

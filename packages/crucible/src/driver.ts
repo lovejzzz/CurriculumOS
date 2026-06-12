@@ -4,7 +4,7 @@
  *  diffs against the verdict ledger and the drift gate fails on >3pt delta. */
 import { buildCourse, gradeStructural, gradeTeachability, type BuildPorts, type Course } from '@curriculumos/core';
 import { FakeModelPort, FixedClock, SeededRand } from '@curriculumos/core';
-import { modelFromEnv } from '@curriculumos/api';
+import { modelFromEnv, LiveRetrievalPort } from '@curriculumos/api';
 import { SystemClock, CryptoRand } from '@curriculumos/api';
 
 export interface DriveResult {
@@ -32,7 +32,7 @@ export interface DriveOptions {
 
 export async function driveCourse(course: { id: string; title: string; prompt: string }, opts: DriveOptions = {}): Promise<DriveResult> {
   const ports: BuildPorts = opts.real
-    ? { model: modelFromEnv().port, clock: new SystemClock(), rand: new CryptoRand() }
+    ? { model: modelFromEnv().port, clock: new SystemClock(), rand: new CryptoRand(), retrieval: new LiveRetrievalPort() }
     : { model: new FakeModelPort(), clock: new FixedClock(), rand: new SeededRand() };
 
   const states: string[] = [];

@@ -13,6 +13,8 @@ import { psych } from './shards/psych.ts';
 import { nursing } from './shards/nursing.ts';
 import { nutrition } from './shards/nutrition.ts';
 import { astro } from './shards/astro.ts';
+import { lit } from './shards/lit.ts';
+import { lang } from './shards/lang.ts';
 
 export type { GenomeShard, GenomeConcept, GenomeCitation } from './types.ts';
 
@@ -25,6 +27,8 @@ export const SHARDS: Record<string, GenomeShard> = {
   nursing,
   nutrition,
   astro,
+  lit,
+  lang,
 };
 
 function norm(text: string): string {
@@ -43,10 +47,17 @@ export interface LinkHit {
   matchedOn: string;
 }
 
+/** Merge the built-in shards with runtime extensions (the flywheel: promoted
+ *  kernels persisted by the server come back as extension shards). Built-ins
+ *  win on id collision — verified, hand-built knowledge outranks promotions. */
+export function mergedShards(extensions: Record<string, GenomeShard> = {}): Record<string, GenomeShard> {
+  return { ...extensions, ...SHARDS };
+}
+
 /** Cache-first link: match a session/concept title against a shard's concept
  *  names and aliases. Returns null on miss — the honest value (Law 6). */
-export function linkConcept(shardId: string, title: string): LinkHit | null {
-  const shard = SHARDS[shardId];
+export function linkConcept(shardId: string, title: string, shards: Record<string, GenomeShard> = SHARDS): LinkHit | null {
+  const shard = shards[shardId];
   if (!shard) return null;
   const n = norm(title);
   if (!n) return null;
@@ -71,8 +82,8 @@ export function linkConcept(shardId: string, title: string): LinkHit | null {
   return best;
 }
 
-export function getConcept(shardId: string, conceptKey: string): GenomeConcept | null {
-  return SHARDS[shardId]?.concepts.find((c) => c.key === conceptKey) ?? null;
+export function getConcept(shardId: string, conceptKey: string, shards: Record<string, GenomeShard> = SHARDS): GenomeConcept | null {
+  return shards[shardId]?.concepts.find((c) => c.key === conceptKey) ?? null;
 }
 
 /** Map a DisciplineLens to the shard most likely to cover it. */

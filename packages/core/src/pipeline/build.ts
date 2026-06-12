@@ -16,6 +16,7 @@ import { assembleSkeleton, mergePassB, attachKernelCandidates } from '../author/
 import { lintSkeleton } from '../author/lint.ts';
 import { parseBrief, detectWeeks } from '../author/briefParse.ts';
 import { linkStage } from '../link/index.ts';
+import { retrieveStage, type RetrievalSummary } from '../link/retrieve.ts';
 import { judgeStage } from '../judge/index.ts';
 import { itemsStage } from '../author/items.ts';
 import { voiceStage } from '../voice/index.ts';
@@ -32,6 +33,9 @@ export interface BuildPorts {
   model: ModelPort;
   clock: ClockPort;
   rand: RandPort;
+  /** optional — when present, the link stage enriches readings and promotes
+   *  corroborated kernel candidates (the flywheel's intake, V0.0.4) */
+  retrieval?: import('../ports/index.ts').RetrievalPort;
 }
 
 export interface BuildOptions {
@@ -39,6 +43,10 @@ export interface BuildOptions {
   /** Pass C — real assessment items (V0.0.3). Defaults to the voice setting:
    *  the paid quality passes travel together. */
   items?: boolean;
+  /** genome extension shards (the flywheel: previously promoted kernels) */
+  extensions?: Record<string, import('@curriculumos/knowledge').GenomeShard>;
+  /** receives the retrieval summary (promotions to persist) when retrieval ran */
+  onRetrieval?: (summary: RetrievalSummary) => void;
   budgetUsd?: number;
   lens?: string | null;
   /** Extracted instructor materials (V2: stored whole, hashed, forever). The
@@ -207,10 +215,21 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
     //    overwrites any unverified candidate (cache-first, founding §7) ──
     clock.tick?.();
     stepTo({ type: 'AUTHOR_DONE' }); // → link
-    const linkSummary = linkStage(course);
+    const linkSummary = linkStage(course, opts.extensions ?? {});
     record('link', `${linkSummary.linked}/${linkSummary.total}`);
     emitState({ detail: linkSummary });
     markProvenance(course); // after link: concepts exist and genomeRefs are known
+
+    // ── retrieval (V0.0.4, $0 model spend): enrich readings, promote kernels ──
+    if (ports.retrieval) {
+      const rs = await retrieveStage(course, ports.retrieval);
+      record(
+        'retrieval',
+        `${rs.readingsEnriched} enriched, ${rs.kernelsPromoted} promoted` +
+          (rs.readingsMissed.length ? `, missed: ${rs.readingsMissed.join(',')}` : ''),
+      );
+      opts.onRetrieval?.(rs);
+    }
     // grading-scheme provenance: name whether weights are stated or suggested (Law 6)
     course.receipts.provenance.weights = weightScheme(course).suggested
       ? ({ source: 'compiled' } as ProvenanceMark)

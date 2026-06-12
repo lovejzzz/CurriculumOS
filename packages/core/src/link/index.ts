@@ -4,7 +4,7 @@
  *  (definition, misconceptions, worked example, citations). A miss sets
  *  genomeRef: null — the honest value (Law 6), never invented coverage.
  *  Pure: linking spends nothing ($0 cache hit, the flywheel). */
-import { SHARDS, linkConcept } from '@curriculumos/knowledge';
+import { mergedShards, linkConcept, type GenomeShard } from '@curriculumos/knowledge';
 import type { Course, Kernel } from '../schema/courseObject.ts';
 import { fnv1a } from '../util.ts';
 
@@ -33,22 +33,25 @@ const CONTAINS_COMPATIBLE: Record<string, string[]> = {
   general: [], // unknown discipline → no loose cross-linking at all
 };
 
-export function linkStage(course: Course): LinkSummary {
+export function linkStage(course: Course, extensions: Record<string, GenomeShard> = {}): LinkSummary {
   let linked = 0;
   let missed = 0;
   const g = course.graph;
   const courseDisc = g.discipline;
   const compatible = new Set(CONTAINS_COMPATIBLE[courseDisc] ?? [courseDisc]);
+  // the flywheel: promoted kernels persisted by the server arrive as extension
+  // shards; built-ins win on collision (mergedShards)
+  const shards = mergedShards(extensions);
 
   for (const concept of g.concepts) {
     let best: ReturnType<typeof linkConcept> = null;
     let bestLen = 0;
-    for (const shardId of Object.keys(SHARDS)) {
-      const hit = linkConcept(shardId, concept.name);
+    for (const shardId of Object.keys(shards)) {
+      const hit = linkConcept(shardId, concept.name, shards);
       if (hit) {
         // a loose (contains) match only counts from a discipline-compatible
         // shard; exact alias matches may cross disciplines (real linkage)
-        if (hit.matchedOn !== 'exact' && !compatible.has(SHARDS[shardId]!.discipline)) continue;
+        if (hit.matchedOn !== 'exact' && !compatible.has(shards[shardId]!.discipline)) continue;
         const score = hit.matchedOn === 'exact' ? 1000 : hit.conceptKey.length;
         if (score > bestLen) {
           best = hit;
@@ -72,6 +75,8 @@ export function linkStage(course: Course): LinkSummary {
         definition: gc.definition,
         misconceptions: gc.misconceptions,
         ...(gc.workedExample ? { workedExample: gc.workedExample } : {}),
+        ...(gc.romanization && Object.keys(gc.romanization).length ? { romanization: gc.romanization } : {}),
+        ...(gc.excerpt && (gc.excerpt.text || gc.excerpt.locator) ? { excerpt: gc.excerpt } : {}),
         citations: gc.citations,
         sourceCue: 'the assigned course materials',
         basedOn: { outcomeHash, titleHash },

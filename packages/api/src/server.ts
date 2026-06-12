@@ -26,12 +26,16 @@ import { modelFromEnv } from './models/index.ts';
 import { ProviderError, redact } from './models/openai.ts';
 import { ApiError } from './errors.ts';
 import { extractMaterials, MAX_BRIEF_BYTES, type MaterialIn } from './extract.ts';
+import { LiveRetrievalPort, ExtensionStore } from './retrieval.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DATA_DIR = process.env.COS_DATA_DIR ?? join(process.cwd(), '.data', 'courses');
 const storage = new FileStorage(DATA_DIR);
 /** persisted idempotency keys (api.md: 24h window) — survive restarts */
 const idempotencyStore = new FileStorage(join(DATA_DIR, '..', 'idempotency'));
+/** the flywheel: promoted kernels persist here, return as extension shards */
+const extensions = new ExtensionStore(join(DATA_DIR, '..', 'genome'));
+const retrieval = process.env.COS_NO_RETRIEVAL === '1' ? undefined : new LiveRetrievalPort();
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
 const clock = new SystemClock();
 const rand = new CryptoRand();
@@ -139,20 +143,28 @@ async function handleBuild(req: IncomingMessage, res: ServerResponse): Promise<v
   // (Law 6: fail loud, never unnamed; the SSE contract has no JSON error path).
   let buildId = `b_pending`;
   try {
+    const loadedExtensions = await extensions.load();
+    let promotions: { discipline: string; concepts: import('@curriculumos/knowledge').GenomeConcept[] } | null = null;
     const outcome = await buildCourse(
       parsed.brief,
-      { model, clock, rand },
+      { model, clock, rand, ...(retrieval ? { retrieval } : {}) },
       {
         voice: parsed.options?.voice,
         budgetUsd: budget,
         lens: parsed.options?.lens ?? null,
         files: extraction.files,
+        extensions: loadedExtensions,
+        onRetrieval: (rs) => {
+          if (rs.promotions.length) promotions = { discipline: 'pending', concepts: rs.promotions };
+        },
         onState: (state: PipelineState, costSoFarUsd: number) => {
           frame('state', { buildId, state, costSoFarUsd, at: clock.nowISO() });
         },
       },
     );
     buildId = outcome.course.receipts.builds.at(-1)?.buildId ?? buildId;
+    // persist promoted kernels into the genome extension (the flywheel's intake)
+    if (promotions) await extensions.addPromotions(outcome.course.graph.discipline, (promotions as { concepts: import('@curriculumos/knowledge').GenomeConcept[] }).concepts);
     await saveCourse(outcome.course);
     // base snapshot: the event-sourced undo/time-travel anchor (ADR-05)
     await storage.put(`${outcome.course.id}.base`, JSON.stringify(outcome.course));
