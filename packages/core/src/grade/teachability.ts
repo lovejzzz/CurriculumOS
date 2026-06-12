@@ -47,7 +47,9 @@ export function gradeTeachability(course: Course): TeachabilityReport {
     let r = 0.25; // a bare definition is the floor, not most of the score
     r += Math.min(k.misconceptions.length, 2) * 0.2; // up to +0.4 for real misconceptions
     r += k.workedExample ? 0.25 : 0;
-    r += k.excerpt && (k.excerpt.text || k.excerpt.locator) ? 0.1 : 0;
+    // only an ACTUAL excerpt counts — a bare locator is a pointer, not anchored
+    // text (the judge: "no actual poem"); crediting it over-rates humanities builds
+    r += k.excerpt?.text ? 0.1 : 0;
     depth += Math.min(1, r);
   }
   const kernelDepth = concepts.length ? depth / concepts.length : 0;

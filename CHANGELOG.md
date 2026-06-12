@@ -1,5 +1,62 @@
 # Changelog
 
+## V0.0.2 — June 12, 2026 (audit + fixes, folded into V0.0.3)
+
+The V0.0.2 roadmap planned the judge-gap work; before it shipped, a real judged
+round across all four audit courses surfaced four bugs the fake engine couldn't
+see — all fixed (`193924b`): Pass A schema intolerance (blocked every course),
+an assembler TDZ crash on model-returned readings/resources (masqueraded as
+"provider-failure"), genome cross-contamination (a Tang-poetry lesson carrying
+nursing content), and 429 backoff too short with failures masked behind bare
+reason codes. Standing rule adopted: every real-round bug earns a deterministic
+fixture, and the fake is shaped to exercise every real path.
+
+## V0.0.3 — June 12, 2026
+
+Closes the judge gap (docs/ROADMAP-V0.0.3.md). The V0.0.1 judge scored courses
+≈ 6/10 with a 2–5 point meter↔judge drift; the meter over-credited structure the
+judge saw through. V0.0.3 turns the judge's own verdicts into content, worst
+artifact first, and recalibrates the meter to track it.
+
+**Real judged round, all four audit courses (gpt-5.4-mini, voice + items):**
+
+| | structural | meter | judge | drift |
+| --- | --- | --- | --- | --- |
+| mandarin | 100/A | 7 | 6 | 1 |
+| cs-python | 100/A | 7 | 7 | 0 |
+| geology | 100/A | 7 | 5 | 2 |
+| world-lit | 100/A | 7 | 6 | 1 |
+
+**Drift collapsed from 2–5 to 0–2** (mean 1.0) — every course within the
+tightened gate; the round PASSES. ~$0.15/course.
+
+- **Pass C — real assessment items.** A budgeted, parallel, contract-linted pass
+  authors genuine quiz/exam items grounded in kernel misconceptions (one best
+  option, distractors trace to distinct misconceptions, no key leakage, real
+  short-answer keys); items are overlay data, renderer prefers them with a
+  compiled fallback. (cs-python quiz: judge 4 → no longer the dragging artifact.)
+- **Functional grading scheme.** Discipline-aware *suggested* weights when the
+  brief states none — marked "suggested (edit me)", summing to 100, graph weights
+  left null (A4); rubric and FAQ agree. (Every syllabus was docked for "weighting
+  per instructor.")
+- **Study guides that teach.** Retrieval-practice self-tests (de-duped from the
+  self-check), a worked walkthrough, and an outcome checklist.
+- **Lesson-plan concreteness.** Minute budgets (~50 min) and every outcome timed
+  to a phase (no orphan outcomes).
+- **Source-text anchoring.** Kernels carry a public-domain excerpt or a precise
+  locator (copyright-safe by prompt); lessons render an actual "Primary text".
+- **Meter recalibrated (teachability v3)** to credit kernel depth, real items,
+  functional grading, operationalized outcomes, and retrieval practice — not mere
+  presence; only an actual excerpt counts, not a bare locator. Drift gate 3 → 2.
+- **Two real rendering bugs the judge caught and fixed:** a malformed study-guide
+  overview (a lead template that needed a verb but got a noun) and duplicated
+  retrieval/self-check rows.
+
+81 tests green; OOXML revalidated (68 docx / 15 pptx / 1 xlsx). Honest residual:
+judge scores are 5–7, not yet ≥8 everywhere — deeper content quality on
+no-genome courses (a literature shard, retrieval) is the v0.4 line, where the
+judge rises to meet the meter rather than the meter being gamed down.
+
 ## V0.0.1 — June 12, 2026
 
 The first framed release: the full rebuild from the [handoff kit](docs/handoff/) plus the

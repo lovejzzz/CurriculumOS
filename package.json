@@ -1,7 +1,7 @@
 {
   "name": "curriculumos",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "CurriculumOS — an engine that turns a description of a course into a verified, internally-consistent, teachable course, and keeps it consistent through every edit.",
   "scripts": {
     "test": "vitest run",

@@ -315,20 +315,26 @@ export function renderStudyGuide(course: Course, s: Session): RenderedArtifact {
     });
   }
 
-  // Retrieval practice (the judge: "no retrieval practice"). Questions are the
-  // kernel's misconceptions turned into "true or false / why" prompts plus an
-  // outcome-derived recall question — with answers, so students can self-test.
+  // Retrieval practice (the judge: "no retrieval practice") — misconception
+  // checks with answers. Distinct from the self-check below (which owns the
+  // outcome checklist), so the two never duplicate (the judge: "repeated rows").
+  // De-duped: shared misconceptions across concepts collapse to one question.
+  const seenMiscon = new Set<string>();
   const retrievalRows: string[][] = [['Question', 'Answer']];
   for (const c of concepts) {
     const k = kernelFor(course, c.id);
     if (!k) continue;
     for (const m of k.misconceptions.slice(0, 2)) {
+      const key = m.claim.toLowerCase().trim();
+      if (seenMiscon.has(key)) continue;
+      seenMiscon.add(key);
       retrievalRows.push([`True or false: ${m.claim} Explain.`, `False. ${m.correction}`]);
     }
   }
-  for (const o of sessionOutcomes(course, s).slice(0, 2)) {
-    if (o) retrievalRows.push([`In your own words, ${o.text.replace(/\.$/, '').toLowerCase()}.`, `See the key concepts above; check you can do this unaided.`]);
-  }
+  // one applied recall prompt from an authored item, if any (not the outcomes —
+  // those are the self-check), so retrieval adds application beyond definitions
+  const authoredApplied = course.overlays.items?.[s.id]?.find((it) => it.kind === 'applied' || it.kind === 'short-answer');
+  if (authoredApplied) retrievalRows.push([authoredApplied.stem, authoredApplied.answerKey]);
   if (retrievalRows.length > 1) {
     blocks.push({ kind: 'retrieval-practice', heading: 'Retrieval practice (self-test)', rows: retrievalRows });
   }

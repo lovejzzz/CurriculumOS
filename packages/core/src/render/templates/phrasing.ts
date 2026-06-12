@@ -66,12 +66,15 @@ export const FAQ_LEADS = [
   'It is worth clarifying',
 ];
 
+// every lead must compose grammatically with a NOUN topic ("... on X.") — a
+// lead needing a verb produced "making sure you can weathering and erosion"
+// (the judge: "malformed overview sentence"). All six take a noun object.
 export const GUIDE_LEADS = [
   'As you review this session, focus first on',
   'When you study this material, start with',
   'The throughline of this session is',
-  'To consolidate this session, trace how',
-  'Reviewing here means making sure you can',
+  'To consolidate this session, return to',
+  'Reviewing here means getting comfortable with',
   'The work of this session centers on',
 ];
 
