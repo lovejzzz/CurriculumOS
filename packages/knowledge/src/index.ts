@@ -15,6 +15,9 @@ import { nutrition } from './shards/nutrition.ts';
 import { astro } from './shards/astro.ts';
 import { lit } from './shards/lit.ts';
 import { lang } from './shards/lang.ts';
+import { arts } from './shards/arts.ts';
+import { philosophy } from './shards/philosophy.ts';
+import { business } from './shards/business.ts';
 
 export type { GenomeShard, GenomeConcept, GenomeCitation } from './types.ts';
 
@@ -29,6 +32,9 @@ export const SHARDS: Record<string, GenomeShard> = {
   astro,
   lit,
   lang,
+  arts,
+  philosophy,
+  business,
 };
 
 function norm(text: string): string {

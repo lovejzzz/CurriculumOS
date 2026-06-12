@@ -335,9 +335,19 @@ export function renderStudyGuide(course: Course, s: Session): RenderedArtifact {
     blocks.push({ kind: 'terms', heading: 'Terms', rows: [['Term', 'Romanization'], ...termRows] });
   }
 
+  // de-duped like retrieval practice below: two concepts sharing one genome
+  // kernel must not warn twice (v0.0.8 round 5: "obvious duplicated rows in
+  // the 'Watch out for' section")
+  const seenWarn = new Set<string>();
   const misconceptions = concepts
     .map((c) => kernelFor(course, c.id)?.misconceptions[0])
-    .filter(Boolean) as { claim: string; correction: string }[];
+    .filter((m): m is { claim: string; correction: string } => {
+      if (!m) return false;
+      const key = m.claim.toLowerCase().trim();
+      if (seenWarn.has(key)) return false;
+      seenWarn.add(key);
+      return true;
+    });
   if (misconceptions.length) {
     blocks.push({
       kind: 'misconception-warnings',

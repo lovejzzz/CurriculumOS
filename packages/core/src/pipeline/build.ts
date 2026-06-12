@@ -14,7 +14,7 @@ import { weightScheme } from '../render/weights.ts';
 import { passASchema, passBSchema } from '../author/schema.ts';
 import { assembleSkeleton, mergePassB, attachKernelCandidates } from '../author/assemble.ts';
 import { lintSkeleton } from '../author/lint.ts';
-import { parseBrief, detectWeeks } from '../author/briefParse.ts';
+import { parseBrief, detectWeeks, inferDiscipline } from '../author/briefParse.ts';
 import { linkStage } from '../link/index.ts';
 import { retrieveStage, type RetrievalSummary } from '../link/retrieve.ts';
 import { judgeStage } from '../judge/index.ts';
@@ -168,7 +168,18 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
     }
     stepTo({ type: 'PASS_A_DONE', skeleton: { sessions: skeleton.sessions.length, assessments: skeleton.assessments.length } }); // → author B
 
-    if (opts.lens) skeleton.discipline = opts.lens as typeof skeleton.discipline;
+    if (opts.lens) {
+      skeleton.discipline = opts.lens as typeof skeleton.discipline;
+    } else {
+      // discipline is deterministic-first: a brief-cue hit overrides the
+      // model's classification; the model fills in only when cues say
+      // 'general'. (v0.0.8 round 3: the model classified art history as
+      // 'humanities', which locked out the arts shard AND let the lit
+      // shard's "Magical realism" — García Márquez — into a painting
+      // course. The cue table is tested; the model's lens is not.)
+      const cued = inferDiscipline(fullBrief);
+      if (cued !== 'general') skeleton.discipline = cued;
+    }
     course.graph = assembleSkeleton(skeleton);
 
     // ── author Pass B (per-session concepts + outcomes + kernel candidates) ──

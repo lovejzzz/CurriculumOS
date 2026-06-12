@@ -17,11 +17,23 @@ const bloomEnum = z.preprocess(
   z.enum(['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create']).catch('Understand'),
 );
 
+/** kind synonyms the model actually emits (v0.0.8 round: 'multiple-choice'
+ *  rejected two whole sessions) — normalize at the boundary, same lesson as
+ *  bloom case */
+const kindEnum = z.preprocess((v) => {
+  if (typeof v !== 'string') return v;
+  const k = v.toLowerCase().replace(/[\s_]+/g, '-');
+  if (k === 'multiple-choice' || k === 'mcq') return 'mc';
+  if (k === 'sa' || k === 'shortanswer') return 'short-answer';
+  if (k.startsWith('applied')) return 'applied'; // 'applied-transfer' (v0.0.8 round 2)
+  return k;
+}, z.enum(['mc', 'short-answer', 'applied']));
+
 export const itemsSchema = z.object({
   items: z
     .array(
       z.object({
-        kind: z.enum(['mc', 'short-answer', 'applied']),
+        kind: kindEnum,
         stem: z.string().min(1),
         options: z
           .array(z.object({ text: z.string().min(1), correct: z.boolean(), rationale: z.string().optional() }))

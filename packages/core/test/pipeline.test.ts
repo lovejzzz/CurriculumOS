@@ -49,12 +49,13 @@ describe('pipeline behavior (M1/M2)', () => {
   });
 
   it('authors kernels even when the genome misses (the model proposes; §7)', async () => {
-    // art history has no shard, so every concept misses the cache — yet each
-    // must still carry subject matter (a model-proposed kernel candidate).
-    // (mandarin/world-lit graduated out of this role in V0.0.4: lang/lit shards.)
-    const ART =
-      'Survey of Art History, a 12-lesson introductory college course with weekly image analyses and a midterm. Lessons cover: how to look at a work of art; Egyptian art; Greek and Roman art; Byzantine art; Gothic art; the Italian Renaissance; Baroque art; Neoclassicism; Romanticism; Impressionism; modernism; and contemporary art with a final paper.';
-    const { course } = await buildCourse(ART, ports(), { voice: false });
+    // public speaking has no shard, so every concept misses the cache — yet
+    // each must still carry subject matter (a model-proposed kernel candidate).
+    // (mandarin/world-lit graduated out of this role in V0.0.4; art history
+    // graduated in V0.0.8 — public speaking stays deliberately unsharded.)
+    const SPEECH =
+      'Public Speaking, a 10-lesson introductory college course with weekly delivered speeches and peer feedback. Lessons cover: overcoming speech anxiety and getting started; audience analysis; choosing and narrowing a topic; researching and supporting your ideas; organizing the speech and outlining; introductions and conclusions; language and style; delivery and the voice; using presentation aids; and the persuasive speech with a final graded presentation.';
+    const { course } = await buildCourse(SPEECH, ports(), { voice: false });
     const linked = course.graph.concepts.filter((c) => c.genomeRef).length;
     expect(linked).toBe(0); // genuinely a cache miss
     const withKernel = course.graph.concepts.filter((c) => course.overlays.kernels[c.id]).length;

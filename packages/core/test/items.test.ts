@@ -3,6 +3,7 @@
  *  item the only thing that ships, and that authored items reach the quiz. */
 import { describe, expect, it } from 'vitest';
 import { buildCourse, render, checkItem, checkItemSet, itemsStage, FakeModelPort, FixedClock, SeededRand } from '../src/index.ts';
+import { itemsSchema } from '../src/author/items.ts';
 import type { AssessmentItem, Kernel } from '../src/index.ts';
 import { CS_BRIEF } from './fixtures.ts';
 
@@ -71,6 +72,20 @@ describe('item contracts (Pass C)', () => {
     const items: AssessmentItem[] = Array.from({ length: 4 }, () => ({ ...good, bloom: 'Understand' as const }));
     const r = checkItemSet(items);
     expect(r.ok).toBe(false);
+  });
+
+  it('normalizes kind synonyms at the boundary (v0.0.8 scar: "multiple-choice" rejected whole sessions)', () => {
+    const payload = {
+      items: ['multiple-choice', 'Multiple Choice', 'mcq', 'short answer', 'applied-transfer'].map((kind, i) => ({
+        kind,
+        stem: `Stem ${i}?`,
+        answerKey: 'A real key sentence.',
+        bloom: 'Apply',
+      })),
+    };
+    const parsed = itemsSchema.safeParse(payload);
+    expect(parsed.success, JSON.stringify(parsed.success ? '' : parsed.error.issues)).toBe(true);
+    expect(parsed.data!.items.map((it) => it.kind)).toEqual(['mc', 'mc', 'mc', 'short-answer', 'applied']);
   });
 });
 

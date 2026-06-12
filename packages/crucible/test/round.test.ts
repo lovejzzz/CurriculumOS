@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { runRound } from '../src/round.ts';
+import { excerptForJudge } from '../src/judge.ts';
 
 describe('crucible (fake engine)', () => {
   it('drives the smoke course to ready and writes a passing report', async () => {
@@ -24,5 +25,20 @@ describe('crucible (fake engine)', () => {
     expect(results.length).toBe(4);
     expect(results.every((r) => r.terminal === 'ready')).toBe(true);
     expect(pass).toBe(true);
+  });
+
+  it('judge excerpts cut at a line boundary with an explicit marker, never mid-sentence (v0.0.8 scar)', () => {
+    // the v0.0.8 round: a silent .slice(6000) made long lesson plans read as
+    // truncated documents and the judge docked two courses for the harness's
+    // own artifact — the excerpt must SAY it is an excerpt
+    const long = Array.from({ length: 400 }, (_, i) => `Row ${i}: a complete sentence about the session content.`).join('\n');
+    const excerpt = excerptForJudge(long);
+    expect(excerpt.length).toBeLessThan(long.length);
+    expect(excerpt).toContain('the full document continues and is complete');
+    // the cut lands on a line boundary: the last content line before the marker is intact
+    const lines = excerpt.split('\n');
+    expect(lines[lines.length - 3]).toMatch(/\.$/);
+    // short artifacts pass through untouched
+    expect(excerptForJudge('# Short doc\nDone.')).toBe('# Short doc\nDone.');
   });
 });

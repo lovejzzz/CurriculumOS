@@ -1,5 +1,48 @@
 # Changelog
 
+## V0.0.8 — June 12, 2026
+
+Workstream E of [the 10/10 plan](docs/PLAN-10-OF-10.md): genome breadth for the
+stranger disciplines + the flywheel proven LIVE.
+
+- **Three new shards** — `arts` (the art-history survey AND music-theory
+  fundamentals: 27 concepts, from formal analysis through the avant-garde,
+  staff notation through phrase structure), `philosophy` (11 concepts with
+  public-domain primary texts: Plato, Descartes, Hume, Mill), `business`
+  (11 business-ethics concepts whose worked examples are decidable mini-cases).
+  Every concept carries citations, ≥1 misconception (most 2), and prereq
+  edges; an out-of-order music course deterministically fires a bridge.
+- **The link bar**: art-history, music-theory, intro-philosophy, and
+  business-ethics each link ≥8 concepts (deterministic tests on the verbatim
+  stranger briefs); world-lit keeps its lit links — philosophy shares the
+  humanities lane without stealing a single lesson. Public speaking stays
+  deliberately unsharded as the suite's honest cache-miss probe (the role
+  art history just graduated from).
+- **The flywheel turned live**: one real build of public-speaking with live
+  retrieval promoted 2 model kernels corroborated by OpenAlex topics
+  ("audience analysis" C2776427610, "source credibility" C2776620684),
+  persisted them to `.data/genome/ext-humanities`, and re-linked 3 concepts
+  from the extension at $0 — `packages/crucible/src/flywheel-live.ts` is the
+  repeatable driver.
+**Five real judged rounds, three scars fixed, each with its fixture:**
+
+| round | result | what it exposed |
+| --- | --- | --- |
+| 1 | FAIL (drift 3) | the HARNESS lying: judge sampling sliced artifacts at a silent 6,000 chars, so post-Pass-D lesson plans read as truncated and both courses were docked for a cliff the harness created → excerpts now cut at a line boundary with an explicit marker |
+| 2 | FAIL (drift 5) | business-ethics 6→**8, drift 1** ✓ — but art-history WORSE: lit's "Magical realism" (García Márquez) linked into the Realism painting session by EXACT name match → all matches now obey the discipline lanes |
+| 3 | FAIL (drift 3) | García Márquez STILL there and links collapsed to 3 — root cause: the real model classifies art history as 'humanities', locking out the arts shard and opening the lit lane → **discipline is deterministic-first now** (a brief-cue hit overrides the model; the model fills in only on 'general') |
+| 4 | blocked | transient: Pass A returned malformed JSON twice ($0.005, named, re-run) |
+| 5 | **PASS** | art-history judge **7/10, drift 1, linked 19**, S11 mismatch gone (lesson 2→8); the surviving complaint — duplicated 'Watch out for' rows when two concepts share one kernel — fixed + pinned after the round |
+
+- Item-kind synonym intolerance fixed twice over (`'multiple-choice'`, then
+  `'applied-transfer'` in the very next round — normalized at the boundary,
+  the Bloom-case lesson again).
+
+105 tests green. Honest residuals, named for the v0.0.9 campaign: syllabus
+texture (weekly assessments render as near-identical schedule entries, many
+sessions without readings on no-reading briefs) and study guides that echo
+lesson language instead of independent retrieval practice.
+
 ## V0.0.5–V0.0.7 — June 12, 2026 (one tree, three campaign scopes)
 
 The first three iterations of [the 10/10 plan](docs/PLAN-10-OF-10.md), shipped

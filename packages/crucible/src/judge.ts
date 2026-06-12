@@ -22,9 +22,21 @@ const JUDGE_SYSTEM = [
   'Return strict JSON: { "overall": n, "verdictLine": "one sentence", "artifacts": [{"artifact": "...", "score": n, "deficiency": "..."}] }.',
 ].join('\n');
 
+/** Excerpt cap per sampled artifact. Cut at a LINE boundary with an explicit
+ *  marker — a silent mid-sentence slice reads as a truncated document, and in
+ *  the v0.0.8 round the judge docked two courses for exactly that artifact of
+ *  the harness (the measurement must not lie about the content). */
+const EXCERPT_CHARS = 9000;
+export function excerptForJudge(markdown: string): string {
+  if (markdown.length <= EXCERPT_CHARS) return markdown;
+  const cut = markdown.lastIndexOf('\n', EXCERPT_CHARS);
+  const head = markdown.slice(0, cut > 0 ? cut : EXCERPT_CHARS);
+  return `${head}\n\n[… sampled excerpt ends here for review length; the full document continues and is complete.]`;
+}
+
 /** Sample the highest-signal artifacts: syllabus, two lesson plans (an early
  *  and a late session), one quiz, one study guide. */
-function sampleArtifacts(course: Course): { label: string; markdown: string }[] {
+export function sampleArtifacts(course: Course): { label: string; markdown: string }[] {
   const rc = render(course);
   const ordered = [...course.graph.sessions].sort((a, b) => a.index - b.index);
   const early = ordered[Math.floor(ordered.length / 4)];
@@ -39,7 +51,7 @@ function sampleArtifacts(course: Course): { label: string; markdown: string }[] 
   const out: { label: string; markdown: string }[] = [];
   for (const p of picks) {
     const art = rc.byKey[p.key];
-    if (art) out.push({ label: p.label, markdown: artifactToMarkdown(art).slice(0, 6000) });
+    if (art) out.push({ label: p.label, markdown: excerptForJudge(artifactToMarkdown(art)) });
   }
   return out;
 }

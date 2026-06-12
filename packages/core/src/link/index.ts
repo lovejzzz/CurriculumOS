@@ -14,11 +14,14 @@ export interface LinkSummary {
   total: number;
 }
 
-/** Disciplines whose shards may satisfy a LOOSE (contains) match for a course.
- *  A humanities course must never pull a health concept by substring (the
- *  V0.0.1 audit: world-lit's Tang-poetry lesson contaminated with leukocyte
- *  content from the nursing shard). Exact alias matches may still cross — a
- *  stats concept legitimately named in a nursing course is real linkage. */
+/** Disciplines whose shards may satisfy a match for a course — ALL matches,
+ *  exact included. A humanities course must never pull a health concept by
+ *  substring (the V0.0.1 audit: world-lit's Tang-poetry lesson contaminated
+ *  with leukocyte content from the nursing shard) — and exact names cross
+ *  just as wrongly: the V0.0.8 round linked lit's "Magical realism" (García
+ *  Márquez) into an art-history Realism session because same-name concepts
+ *  are DIFFERENT concepts across fields. Legitimate crossings (stats in a
+ *  nursing course) are encoded here as compatible lanes, not as a loophole. */
 const CONTAINS_COMPATIBLE: Record<string, string[]> = {
   'stem-quant': ['stem-quant', 'stem-lab'],
   'stem-lab': ['stem-lab', 'stem-quant'],
@@ -38,7 +41,8 @@ export function linkStage(course: Course, extensions: Record<string, GenomeShard
   let missed = 0;
   const g = course.graph;
   const courseDisc = g.discipline;
-  const compatible = new Set(CONTAINS_COMPATIBLE[courseDisc] ?? [courseDisc]);
+  // a course always links its OWN discipline's shards (extensions included)
+  const compatible = new Set([courseDisc, ...(CONTAINS_COMPATIBLE[courseDisc] ?? [])]);
   // the flywheel: promoted kernels persisted by the server arrive as extension
   // shards; built-ins win on collision (mergedShards)
   const shards = mergedShards(extensions);
@@ -49,9 +53,8 @@ export function linkStage(course: Course, extensions: Record<string, GenomeShard
     for (const shardId of Object.keys(shards)) {
       const hit = linkConcept(shardId, concept.name, shards);
       if (hit) {
-        // a loose (contains) match only counts from a discipline-compatible
-        // shard; exact alias matches may cross disciplines (real linkage)
-        if (hit.matchedOn !== 'exact' && !compatible.has(shards[shardId]!.discipline)) continue;
+        // every match — exact or contains — must come from a compatible lane
+        if (!compatible.has(shards[shardId]!.discipline)) continue;
         const score = hit.matchedOn === 'exact' ? 1000 : hit.conceptKey.length;
         if (score > bestLen) {
           best = hit;

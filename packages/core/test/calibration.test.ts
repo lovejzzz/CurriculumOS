@@ -25,16 +25,18 @@ function ports(thin = false) {
   return { model: new FakeModelPort({ thin }), clock: new FixedClock(), rand: new SeededRand() };
 }
 
-/** The stranger-pool art-history brief: NO genome shard covers it, so kernels
- *  come only from the author pass — making thin (no kernels at all) vs rich
- *  (model kernels) a clean A/B on content depth alone. */
-const ART_BRIEF =
-  'Survey of Art History, a 14-lesson introductory college course with weekly museum-style image analyses and a midterm. Lessons cover: how to look at and describe a work of art; prehistoric and ancient Near Eastern art; Egyptian art and architecture; Greek and Roman art; early Christian and Byzantine art; medieval and Gothic art; the Italian Renaissance; the Northern Renaissance; Baroque art; Rococo and Neoclassicism; Romanticism and Realism; Impressionism and Post-Impressionism; modernism and the twentieth-century avant-garde; and contemporary and global art with a final visual-analysis paper.';
+/** The stranger-pool public-speaking brief: NO genome shard covers it, so
+ *  kernels come only from the author pass — making thin (no kernels at all)
+ *  vs rich (model kernels) a clean A/B on content depth alone. (Art history
+ *  held this role until V0.0.8 gave it a shard; public speaking stays
+ *  deliberately unsharded as the honest cache-miss probe.) */
+const STRANGER_BRIEF =
+  'Public Speaking, a 10-lesson introductory college course with weekly delivered speeches and peer feedback. Lessons cover: overcoming speech anxiety and getting started; audience analysis; choosing and narrowing a topic; researching and supporting your ideas; organizing the speech and outlining; introductions and conclusions; language and style; delivery and the voice; using presentation aids; and the persuasive speech with a final graded presentation.';
 
 describe('teachability calibration (v0.2 bar — the meter spreads)', () => {
   it('a thin build scores ≤4; the rich build ≥7; spread ≥3 (no more flat 7s)', async () => {
-    const thin = await buildCourse(ART_BRIEF, ports(true), { voice: false });
-    const rich = await buildCourse(ART_BRIEF, ports(false), { voice: false });
+    const thin = await buildCourse(STRANGER_BRIEF, ports(true), { voice: false });
+    const rich = await buildCourse(STRANGER_BRIEF, ports(false), { voice: false });
     const tThin = gradeTeachability(thin.course);
     const tRich = gradeTeachability(rich.course);
     expect(tThin.score10, `thin=${JSON.stringify(tThin)}`).toBeLessThanOrEqual(4);
