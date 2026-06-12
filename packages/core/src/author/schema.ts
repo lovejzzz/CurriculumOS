@@ -79,7 +79,12 @@ export const passBSchema = z.object({
       z.object({
         concept: z.string().min(1), // must name a concept in this batch
         definition: z.string().min(1),
-        misconception: z.object({ claim: z.string().min(1), correction: z.string().min(1) }),
+        /** 1–3 REAL student misconceptions — each one powers a distinct
+         *  assessment distractor, so plurality here is item variety there. */
+        misconceptions: z
+          .array(z.object({ claim: z.string().min(1), correction: z.string().min(1) }))
+          .min(1)
+          .max(3),
         workedExample: z
           .object({ setup: z.string(), steps: z.array(z.string()).min(1), answer: z.string() })
           .optional(),

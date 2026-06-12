@@ -135,4 +135,40 @@ describe('api (fake provider)', () => {
     expect(r.status).toBe(404);
     expect((await r.json()).code).toBe('course-not-found');
   });
+
+  it('undo replays the event log minus its last event (event-sourced, ADR-05)', async () => {
+    const { course } = await buildViaSSE();
+    const a = course.graph.assessments.find((x: any) => x.weightPct !== null && x.cadence === 'once');
+    const original = a.weightPct;
+    // two edits
+    await fetch(`${base}/courses/${course.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ops: [{ type: 'session.retitle', id: 'S1', title: 'Retitled once' }] }) });
+    await fetch(`${base}/courses/${course.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ops: [{ type: 'assessment.set_weight', id: a.id, weightPct: Math.max(0, original - 1) }] }) });
+    // undo the weight change
+    const r = await fetch(`${base}/courses/${course.id}/undo`, { method: 'POST' });
+    expect(r.status).toBe(200);
+    const j = await r.json();
+    expect(j.undone).toBe(2);
+    expect(j.grade.structural).toBeTruthy(); // re-graded, never stale
+    const after = await (await fetch(`${base}/courses/${course.id}`)).json();
+    expect(after.graph.assessments.find((x: any) => x.id === a.id).weightPct).toBe(original); // weight restored
+    expect(after.graph.sessions.find((x: any) => x.id === 'S1').title).toBe('Retitled once'); // first edit kept
+    expect(after.overlays.edits.length).toBe(1);
+  });
+
+  it('undo with an empty log refuses with a named 422', async () => {
+    const { course } = await buildViaSSE();
+    const r = await fetch(`${base}/courses/${course.id}/undo`, { method: 'POST' });
+    expect(r.status).toBe(422);
+    expect((await r.json()).code).toBe('precondition-failed');
+  });
+
+  it('observations surface proactive TA notices (pure, $0)', async () => {
+    const { course } = await buildViaSSE();
+    const r = await (await fetch(`${base}/courses/${course.id}/observations`)).json();
+    expect(Array.isArray(r.observations)).toBe(true);
+    for (const o of r.observations) {
+      expect(o.text.length).toBeGreaterThan(10);
+      expect(o.kind).toBeTruthy();
+    }
+  });
 });

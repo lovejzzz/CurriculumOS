@@ -17,8 +17,9 @@ const BANNED = [
   { re: /from ['"]node:fs['"]/, name: 'node:fs import' },
   { re: /from ['"]fs['"]/, name: 'fs import' },
   { re: /from ['"]node:http['"]/, name: 'node:http import' },
-  { re: /\bdocument\./, name: 'DOM access (document)' },
-  { re: /\bwindow\./, name: 'DOM access (window)' },
+  // negative lookbehind: "word/document.xml" path strings are not DOM access
+  { re: /(?<![/'"._\w-])document\.(?!xml)/, name: 'DOM access (document)' },
+  { re: /(?<![/'"._\w-])window\./, name: 'DOM access (window)' },
   { re: /\blocalStorage\b/, name: 'localStorage' },
 ];
 

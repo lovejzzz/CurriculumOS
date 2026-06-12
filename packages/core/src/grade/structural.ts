@@ -131,6 +131,27 @@ export function gradeStructural(course: Course): StructuralReport {
     }
   }
 
+  // ── Truncated slide bullets (verdict ledger: truncated-slide-bullet-ending-
+  //    mid-clause-without-terminal-punctuation): any deck text line longer
+  //    than 6 words must end with terminal punctuation ──
+  for (const a of rc.artifacts) {
+    if (a.kind !== 'slideDecks') continue;
+    for (const b of a.blocks) {
+      for (const line of (b.text ?? '').split('\n')) {
+        const trimmed = line.trim();
+        const words = trimmed.split(/\s+/).filter(Boolean);
+        // code/math lines (=, →, operators) are not prose — exempt (the ledger
+        // case was truncated PROSE; flagging worked-example code is a false
+        // positive of exactly the kind the verdicts ledger recorded)
+        const looksLikeCode = /[=→{}<>]|\(\)/.test(trimmed);
+        if (words.length > 6 && !looksLikeCode && !/[.!?:)%」。？]$/u.test(trimmed)) {
+          findings.push(finding('P1', 'truncation', `slide bullet ends mid-clause in ${a.scope}`, trimmed.slice(0, 60)));
+          break;
+        }
+      }
+    }
+  }
+
   // ── Score: start at 100, subtract by severity (calibrated weights) ──
   let score = 100;
   for (const f of findings) score -= f.severity === 'P0' ? 12 : f.severity === 'P1' ? 5 : 1;

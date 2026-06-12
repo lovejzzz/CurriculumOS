@@ -1,19 +1,26 @@
 import { useState } from 'react';
-import { chat, type TAProposal, type EditResult } from '../api.ts';
+import { chat, type TAProposal, type EditResult, type Observation } from '../api.ts';
 
 /** The TA — proactive but polite. Its tools are EditOps, so everything it does
  *  arrives as a proposal with a diff and a fresh grade, reviewed in the Queue.
- *  Nothing auto-applies (founding §6, ADR-12: one edit pathway). */
+ *  Observations are its proactive half — it notices, you decide. Nothing
+ *  auto-applies (founding §6, ADR-12: one edit pathway). */
 type Msg = { who: 'me' | 'them'; text: string };
 
 export function TA({
   courseId,
   queue,
+  observations,
+  canUndo,
   onApply,
+  onUndo,
 }: {
   courseId: string;
   queue: { id: number; summary: string; diff: EditResult['diff']; cost?: number }[];
+  observations: Observation[];
+  canUndo: boolean;
   onApply: (ops: any[], note?: string) => void;
+  onUndo: () => void;
 }) {
   const [msgs, setMsgs] = useState<Msg[]>([
     { who: 'them', text: 'I’m your TA. Ask me to rebalance weights, rename a session, add a reading — I’ll propose the edit for your review.' },
@@ -39,9 +46,32 @@ export function TA({
 
   return (
     <div>
-      <h3 style={{ marginTop: 0 }}>
+      <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
         The TA {queue.length > 0 && <span className="count-pill">{queue.length}</span>}
+        {canUndo && (
+          <button className="artifact-chip" style={{ marginLeft: 'auto' }} onClick={onUndo} title="undo the last edit (event-sourced)">
+            ↩ undo
+          </button>
+        )}
       </h3>
+
+      {observations.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div className="queue-tag">the TA noticed</div>
+          {observations.map((o) => (
+            <div className="queue-item" key={o.id}>
+              <div style={{ fontSize: 13 }}>{o.text}</div>
+              {o.ops && (
+                <div style={{ marginTop: 6 }}>
+                  <button className="cta ghost" onClick={() => onApply(o.ops!, `TA observation: ${o.kind}`)}>
+                    Apply the fix
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {queue.length > 0 && (
         <div style={{ marginBottom: 14 }}>

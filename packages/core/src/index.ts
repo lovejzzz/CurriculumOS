@@ -39,7 +39,14 @@ export { diffRenders } from './diff/index.ts';
 
 // export / package
 export { buildPackage, packageManifest, qualityReport } from './render/export/package.ts';
+export type { PackageFormat } from './render/export/package.ts';
 export { artifactToMarkdown } from './render/export/text.ts';
+export { buildDocx } from './render/export/docx.ts';
+export { buildPptx, deckVisualStats } from './render/export/pptx.ts';
+export { buildXlsx } from './render/export/xlsx.ts';
+export { auditPackage } from './render/export/audit.ts';
+export { readZipStored, buildZip, textEntry, bytesEntry } from './render/export/zip.ts';
+export type { ZipEntry } from './render/export/zip.ts';
 
 // knowledge stages
 export { linkStage } from './link/index.ts';
@@ -59,9 +66,11 @@ export type { BuildPorts, BuildOptions, BuildOutcome } from './pipeline/build.ts
 export { applyEdit, replayEdits } from './pipeline/patch.ts';
 export { CostLedgerBuilder, BudgetExceededError, meteredModel } from './pipeline/cost.ts';
 
-// the TA (one edit pathway)
+// the TA (one edit pathway; proactive but polite)
 export { proposeEdit, TA_SYSTEM } from './ta/index.ts';
 export type { TAProposal } from './ta/index.ts';
+export { observe } from './ta/observe.ts';
+export type { Observation } from './ta/observe.ts';
 
 // brief parsing (intake)
 export { parseBrief, inferDiscipline, detectWeeks } from './author/briefParse.ts';

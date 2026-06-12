@@ -165,10 +165,16 @@ export function fakePassB(payload: { sessionIndex: number; title: string }): Pas
       {
         concept: topic,
         definition: `${topic} names the session's central idea: what it is, when it applies, and how it connects to the work before and after it.`,
-        misconception: {
-          claim: `${topic} can be memorized as a fixed recipe without understanding when it applies.`,
-          correction: `The conditions of application matter as much as the procedure — vary the context and check the idea still holds.`,
-        },
+        misconceptions: [
+          {
+            claim: `${topic} can be memorized as a fixed recipe without understanding when it applies.`,
+            correction: `The conditions of application matter as much as the procedure — vary the context and check the idea still holds.`,
+          },
+          {
+            claim: `If an answer involving ${topic.toLowerCase()} looks plausible, it is probably right.`,
+            correction: `Plausibility is not a check — verify against the definition and a worked case before trusting the result.`,
+          },
+        ],
         ...(i % 2 === 0
           ? {
               workedExample: {
@@ -214,8 +220,11 @@ function fakeChat(message: string): { reply: string; note?: string; ops: unknown
   return { reply: "I can help adjust weights, titles, readings, and more — tell me what to change.", ops: [] };
 }
 
-/** The deterministic engine. usd is always 0 — a fake build spends nothing. */
+/** The deterministic engine. usd is always 0 — a fake build spends nothing.
+ *  opts.thin: author NO kernels (a deliberately content-poor build — the
+ *  calibration suite's low anchor; the teachability meter must spread). */
 export class FakeModelPort implements ModelPort {
+  constructor(private opts: { thin?: boolean } = {}) {}
   async completeJSON(req: ModelRequest): Promise<ModelResult> {
     const usage = { inputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
     let json: unknown;
@@ -223,9 +232,11 @@ export class FakeModelPort implements ModelPort {
       case 'authorA':
         json = fakePassA((req.payload as { brief: string }).brief);
         break;
-      case 'authorB':
-        json = fakePassB(req.payload as { sessionIndex: number; title: string });
+      case 'authorB': {
+        const b = fakePassB(req.payload as { sessionIndex: number; title: string });
+        json = this.opts.thin ? { ...b, kernels: [] } : b;
         break;
+      }
       case 'voice':
         json = fakeVoice(req.payload as { surfaceId: string; compiled: string });
         break;

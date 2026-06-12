@@ -7,6 +7,9 @@ import { join } from 'node:path';
 import {
   buildCourse,
   applyEdit,
+  applyBatch,
+  grade as gradeCourse,
+  observe,
   render,
   buildPackage,
   proposeEdit,
@@ -22,13 +25,30 @@ import { FileStorage, SystemClock, CryptoRand } from './store.ts';
 import { modelFromEnv } from './models/index.ts';
 import { ProviderError, redact } from './models/openai.ts';
 import { ApiError } from './errors.ts';
+import { extractMaterials, MAX_BRIEF_BYTES, type MaterialIn } from './extract.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DATA_DIR = process.env.COS_DATA_DIR ?? join(process.cwd(), '.data', 'courses');
 const storage = new FileStorage(DATA_DIR);
+/** persisted idempotency keys (api.md: 24h window) — survive restarts */
+const idempotencyStore = new FileStorage(join(DATA_DIR, '..', 'idempotency'));
+const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
 const clock = new SystemClock();
 const rand = new CryptoRand();
-const idempotency = new Map<string, { bodyHash: string; response: unknown }>();
+
+async function idempotencyGet(key: string): Promise<{ bodyHash: string; response: unknown } | null> {
+  const raw = await idempotencyStore.get(key);
+  if (!raw) return null;
+  const rec = JSON.parse(raw) as { bodyHash: string; response: unknown; at: number };
+  if (Date.now() - rec.at > IDEMPOTENCY_TTL_MS) {
+    await idempotencyStore.delete(key);
+    return null;
+  }
+  return rec;
+}
+async function idempotencyPut(key: string, bodyHash: string, response: unknown): Promise<void> {
+  await idempotencyStore.put(key, JSON.stringify({ bodyHash, response, at: Date.now() }));
+}
 
 function cors(res: ServerResponse): void {
   res.setHeader('access-control-allow-origin', '*');
@@ -78,10 +98,37 @@ function fnvHash(s: string): string {
 // ── POST /courses — build, streaming the machine as SSE ──────────────────────
 async function handleBuild(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = await readBody(req);
-  const parsed = JSON.parse(body || '{}') as { brief?: string; options?: { voice?: boolean; lens?: string | null } };
+  const parsed = JSON.parse(body || '{}') as {
+    brief?: string;
+    materials?: MaterialIn[];
+    options?: { voice?: boolean; lens?: string | null };
+  };
   if (!parsed.brief || typeof parsed.brief !== 'string') throw new ApiError('bad-request', 'brief is required');
+  if (Buffer.byteLength(parsed.brief, 'utf8') > MAX_BRIEF_BYTES)
+    throw new ApiError('bad-request', `brief exceeds ${MAX_BRIEF_BYTES / 1024}KB cap`);
   const budget = Number(req.headers['x-budget-usd'] ?? Infinity);
   const { port: model, provider } = modelFromEnv();
+
+  // materials-in: extract at the edge (impure), inject as BriefFiles (V2)
+  const extraction = parsed.materials?.length ? extractMaterials(parsed.materials) : { files: [], notes: [] };
+
+  // POST idempotency (api.md): same key + same body replays the stored Course id
+  const key = req.headers['idempotency-key'] as string | undefined;
+  const bodyHash = fnvHash(body);
+  if (key) {
+    const prior = await idempotencyGet(`post_${key}`);
+    if (prior) {
+      if (prior.bodyHash !== bodyHash) throw new ApiError('idempotency-replay-mismatch', 'same key, different body');
+      const existing = await storage.get(String(prior.response));
+      if (existing) {
+        res.setHeader('idempotent-replay', 'true');
+        cors(res);
+        res.writeHead(202, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
+        res.write(`event: done\ndata: ${JSON.stringify({ provider, ...JSON.parse(existing) })}\n\n`);
+        return void res.end();
+      }
+    }
+  }
 
   cors(res);
   res.writeHead(202, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
@@ -99,6 +146,7 @@ async function handleBuild(req: IncomingMessage, res: ServerResponse): Promise<v
         voice: parsed.options?.voice,
         budgetUsd: budget,
         lens: parsed.options?.lens ?? null,
+        files: extraction.files,
         onState: (state: PipelineState, costSoFarUsd: number) => {
           frame('state', { buildId, state, costSoFarUsd, at: clock.nowISO() });
         },
@@ -106,8 +154,12 @@ async function handleBuild(req: IncomingMessage, res: ServerResponse): Promise<v
     );
     buildId = outcome.course.receipts.builds.at(-1)?.buildId ?? buildId;
     await saveCourse(outcome.course);
-    // the terminal event carries the full Course Object (or the blocked course with named reason)
-    frame('done', { provider, ...outcome.course });
+    // base snapshot: the event-sourced undo/time-travel anchor (ADR-05)
+    await storage.put(`${outcome.course.id}.base`, JSON.stringify(outcome.course));
+    if (key) await idempotencyPut(`post_${key}`, bodyHash, outcome.course.id);
+    // the terminal event carries the full Course Object (or the blocked course
+    // with named reason); material extraction notes ride along (Law 6)
+    frame('done', { provider, ...(extraction.notes.length ? { materialNotes: extraction.notes } : {}), ...outcome.course });
   } catch (err) {
     // a build never throws (it catches into a blocked outcome); this guards a
     // failure in saveCourse/serialization after headers are sent
@@ -128,11 +180,11 @@ async function handlePatch(req: IncomingMessage, res: ServerResponse, id: string
   const parsed = JSON.parse(body || '{}') as { ops?: EditOp[]; actor?: 'instructor' | 'ta' | 'system' };
   if (!Array.isArray(parsed.ops)) throw new ApiError('invalid-op', 'ops[] is required');
 
-  // idempotency
+  // idempotency (persisted, 24h window — api.md)
   const key = req.headers['idempotency-key'] as string | undefined;
   const bodyHash = fnvHash(body);
   if (key) {
-    const prior = idempotency.get(key);
+    const prior = await idempotencyGet(`patch_${key}`);
     if (prior) {
       if (prior.bodyHash !== bodyHash) throw new ApiError('idempotency-replay-mismatch', 'same key, different body');
       res.setHeader('idempotent-replay', 'true');
@@ -151,7 +203,7 @@ async function handlePatch(req: IncomingMessage, res: ServerResponse, id: string
   const { port: model } = modelFromEnv();
   const result = await applyEdit(course, parsed.ops, parsed.actor ?? 'instructor', { clock, model });
   await saveCourse(course);
-  if (key) idempotency.set(key, { bodyHash, response: result });
+  if (key) await idempotencyPut(`patch_${key}`, bodyHash, result);
   sendJson(res, 200, result);
 }
 
@@ -177,12 +229,45 @@ async function handleEvents(res: ServerResponse, id: string, since: number): Pro
   sendJson(res, 200, { events: course.overlays.edits.filter((e) => e.seq > since) });
 }
 async function handlePackage(res: ServerResponse, id: string, format: string): Promise<void> {
-  if (format !== 'zip') throw new ApiError('unsupported-format', `format "${format}" not yet supported; use zip`);
+  // zip = the teacher-ready Office package; markdown = the diff-friendly text render
+  if (format !== 'zip' && format !== 'markdown')
+    throw new ApiError('unsupported-format', `format "${format}" not supported; use zip or markdown`);
   const course = await loadCourse(id);
-  const bytes = buildPackage(course);
-  const name = `${course.graph.courseTitle.replace(/[^A-Za-z0-9]+/g, '_')}.zip`;
+  const bytes = buildPackage(course, format === 'markdown' ? 'markdown' : 'office');
+  const name = `${course.graph.courseTitle.replace(/[^A-Za-z0-9]+/g, '_')}${format === 'markdown' ? '_md' : ''}.zip`;
   res.writeHead(200, { 'content-type': 'application/zip', 'content-disposition': `attachment; filename="${name}"` });
   res.end(Buffer.from(bytes));
+}
+
+// ── POST /courses/:id/undo — event-sourced undo (ADR-05) ─────────────────────
+// Replays the edit log minus its last event onto the base snapshot. Events
+// whose effects can't replay deterministically (model-assisted refreshes in
+// the REMAINING log) refuse with a named 422 — never a silently-wrong course.
+async function handleUndo(res: ServerResponse, id: string): Promise<void> {
+  const course = await loadCourse(id);
+  const events = course.overlays.edits;
+  if (events.length === 0) throw new ApiError('precondition-failed', 'nothing to undo (the edit log is empty)');
+  const baseRaw = await storage.get(`${id}.base`);
+  if (!baseRaw) throw new ApiError('precondition-failed', 'no base snapshot for this course (built before undo existed)');
+
+  const remaining = events.slice(0, -1);
+  const nonReplayable = remaining.flatMap((e) => e.ops).filter((op) => op.type === 'voice.refresh' || op.type === 'kernel.refresh');
+  if (nonReplayable.length > 0)
+    throw new ApiError('precondition-failed', `undo would need to replay ${nonReplayable.length} model-assisted op(s) whose results are not deterministic — undo those edits individually`);
+
+  const replayed = JSON.parse(baseRaw) as Course;
+  for (const e of remaining) {
+    applyBatch(replayed, e.ops, e.actor, e.at, e.note);
+  }
+  replayed.receipts.quality = gradeCourse(replayed, clock.nowISO());
+  await saveCourse(replayed);
+  sendJson(res, 200, { undone: events[events.length - 1]!.seq, remaining: remaining.length, grade: replayed.receipts.quality });
+}
+
+// ── GET /courses/:id/observations — the proactive TA (pure, $0) ──────────────
+async function handleObservations(res: ServerResponse, id: string): Promise<void> {
+  const course = await loadCourse(id);
+  sendJson(res, 200, { observations: observe(course) });
 }
 
 // ── POST /courses/:id/chat — the TA (proposals into the Queue) ────────────────
@@ -208,10 +293,17 @@ const server = createServer(async (req, res) => {
     const parts = url.pathname.split('/').filter(Boolean); // ['courses', id, ...]
     if (parts[0] === 'health') return sendJson(res, 200, { ok: true, provider: modelFromEnv().provider });
 
-    // intake reflection ($0, deterministic) — powers the Door's "heard so far"
+    // intake reflection ($0, deterministic) — powers the Door's "heard so far";
+    // dropped files are extracted here too so chips reflect them live
     if (parts[0] === 'intake' && req.method === 'POST') {
-      const b = JSON.parse((await readBody(req)) || '{}') as { brief?: string };
-      return sendJson(res, 200, { heard: parseBrief(b.brief ?? '') });
+      const b = JSON.parse((await readBody(req)) || '{}') as { brief?: string; materials?: MaterialIn[] };
+      const extraction = b.materials?.length ? extractMaterials(b.materials) : { files: [], notes: [] };
+      const combined = [b.brief ?? '', ...extraction.files.map((f) => f.extractedText)].filter(Boolean).join('\n\n');
+      return sendJson(res, 200, {
+        heard: parseBrief(combined),
+        files: extraction.files.map((f) => ({ name: f.name, extracted: f.extractedText.length > 0 })),
+        ...(extraction.notes.length ? { notes: extraction.notes } : {}),
+      });
     }
 
     if (parts[0] !== 'courses') throw new ApiError('bad-request', 'unknown route');
@@ -233,6 +325,8 @@ const server = createServer(async (req, res) => {
     if (sub === 'events') return await handleEvents(res, id, Number(url.searchParams.get('since') ?? 0));
     if (sub === 'package') return await handlePackage(res, id, url.searchParams.get('format') ?? 'zip');
     if (sub === 'chat' && req.method === 'POST') return await handleChat(req, res, id);
+    if (sub === 'undo' && req.method === 'POST') return await handleUndo(res, id);
+    if (sub === 'observations') return await handleObservations(res, id);
     if (sub === 'artifacts') return await handleArtifact(res, id, parts[3] ?? '', parts[4] ?? 'course');
     throw new ApiError('bad-request', 'unknown route');
   } catch (err) {

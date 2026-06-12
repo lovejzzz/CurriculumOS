@@ -18,21 +18,40 @@ export interface MachineState {
   reason?: string;
 }
 
-export async function intake(brief: string): Promise<Heard> {
-  const r = await fetch(`${BASE}/intake`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ brief }) });
-  return (await r.json()).heard;
+export interface MaterialIn {
+  name: string;
+  contentBase64: string;
+}
+
+export interface IntakeResult {
+  heard: Heard;
+  files?: { name: string; extracted: boolean }[];
+  notes?: string[];
+}
+
+export async function intake(brief: string, materials: MaterialIn[] = []): Promise<IntakeResult> {
+  const r = await fetch(`${BASE}/intake`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ brief, ...(materials.length ? { materials } : {}) }),
+  });
+  return r.json();
 }
 
 /** Build a course, streaming machine states. Resolves with the Course Object
  *  (or the blocked course, named) when the stream ends. */
 export async function build(
   brief: string,
-  opts: { voice?: boolean; budgetUsd?: number },
+  opts: { voice?: boolean; budgetUsd?: number; materials?: MaterialIn[] },
   onState: (s: MachineState, costSoFarUsd: number) => void,
 ): Promise<any> {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   if (opts.budgetUsd) headers['x-budget-usd'] = String(opts.budgetUsd);
-  const resp = await fetch(`${BASE}/courses`, { method: 'POST', headers, body: JSON.stringify({ brief, options: { voice: opts.voice } }) });
+  const resp = await fetch(`${BASE}/courses`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ brief, options: { voice: opts.voice }, ...(opts.materials?.length ? { materials: opts.materials } : {}) }),
+  });
   if (!resp.body) throw new Error('no stream');
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
@@ -93,4 +112,26 @@ export async function chat(id: string, message: string): Promise<TAProposal> {
 
 export function packageUrl(id: string): string {
   return `${BASE}/courses/${id}/package?format=zip`;
+}
+
+export interface Observation {
+  id: string;
+  kind: string;
+  text: string;
+  entityIds: string[];
+  ops?: any[];
+}
+
+export async function observations(id: string): Promise<Observation[]> {
+  const r = await fetch(`${BASE}/courses/${id}/observations`);
+  return (await r.json()).observations ?? [];
+}
+
+export async function undo(id: string): Promise<{ undone: number; remaining: number; grade: any } | { code: string; message: string }> {
+  const r = await fetch(`${BASE}/courses/${id}/undo`, { method: 'POST' });
+  return r.json();
+}
+
+export async function receipt(id: string): Promise<any> {
+  return (await fetch(`${BASE}/courses/${id}/receipt`)).json();
 }

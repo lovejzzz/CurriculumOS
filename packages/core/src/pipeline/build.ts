@@ -4,9 +4,12 @@
  *  Spine, the Crucible all read these states (machine.ts). Pure given its
  *  injected ports (model/clock/rand) — replay-deterministic (ADR-03/05). */
 import type { Course, ProvenanceMark } from '../schema/courseObject.ts';
-import type { BlockedReason, PipelineState } from '../schema/machine.ts';
+import type { BlockedReason, PipelineEvent, PipelineState } from '../schema/machine.ts';
+import { transition, initialMachineContext, IllegalTransitionError, IDLE } from '../machine/reducer.ts';
 import type { ClockPort, ModelPort, RandPort } from '../ports/index.ts';
 import { ulid } from '../ports/index.ts';
+import { fnv1a } from '../util.ts';
+import { render } from '../render/index.ts';
 import { passASchema, passBSchema } from '../author/schema.ts';
 import { assembleSkeleton, mergePassB, attachKernelCandidates } from '../author/assemble.ts';
 import { lintSkeleton } from '../author/lint.ts';
@@ -33,6 +36,9 @@ export interface BuildOptions {
   voice?: boolean;
   budgetUsd?: number;
   lens?: string | null;
+  /** Extracted instructor materials (V2: stored whole, hashed, forever). The
+   *  intake and author stages read their text alongside the brief. */
+  files?: import('../schema/courseObject.ts').BriefFile[];
   onState?: (state: PipelineState, costSoFarUsd: number) => void;
 }
 
@@ -73,13 +79,31 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
   const courseId = `c_${ulid(clock, rand)}`;
   const startISO = clock.nowISO();
   const course = emptyCourse(courseId, briefText, startISO);
+  if (opts.files?.length) course.brief.files = opts.files;
+  /** brief + extracted materials — what intake and authoring actually read */
+  const fullBrief = [briefText, ...(opts.files ?? []).map((f) => f.extractedText)].filter(Boolean).join('\n\n');
   const buildId = `b_${ulid(clock, rand)}`;
   const states: { state: string; enteredAt: string; detail?: string }[] = [];
   const record = (name: string, detail?: string) => states.push({ state: name, enteredAt: clock.nowISO(), ...(detail ? { detail } : {}) });
 
+  // ── THE MACHINE DRIVES THE PIPELINE (Law 7: one sequencing truth). Every
+  // stage change is a transition through the tested reducer; emissions are the
+  // reducer's state enriched with live detail. An illegal transition is a
+  // programming error and throws (dev mode) — it can never ship as a state. ──
+  const ctx = initialMachineContext({ mode: 'dev', voiceEnabled });
+  let machineState: PipelineState = IDLE;
+  const stepTo = (event: PipelineEvent): PipelineState => {
+    machineState = transition(machineState, event, ctx);
+    return machineState;
+  };
+  const emitState = (patch?: Record<string, unknown>): void => {
+    emit(patch ? ({ ...machineState, ...patch } as PipelineState) : machineState);
+  };
+
   const finishBlocked = (reason: BlockedReason): BuildOutcome => {
+    if (machineState.state !== 'blocked') stepTo({ type: 'FAILED', reason }); // legal from any state
     record('blocked', reason);
-    emit({ state: 'blocked', reason });
+    emitState();
     course.receipts.cost = ledger.toLedger();
     course.receipts.builds.push({ buildId, startedAt: startISO, states, terminal: 'blocked', blockedReason: reason, costUsd: ledger.total() });
     return { course, terminal: 'blocked', blockedReason: reason };
@@ -87,38 +111,43 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
 
   try {
     // ── intake (free; deterministic parse — the honest "heard so far") ──
-    const heard = parseBrief(briefText);
+    stepTo({ type: 'BUILD_REQUESTED', briefHash: fnv1a(fullBrief), budgetUsd: Number.isFinite(budget) ? budget : 0 });
+    const heard = parseBrief(fullBrief);
     record('intake');
-    emit({ state: 'intake', detail: { heard: { ...(heard.weeks !== undefined ? { weeks: heard.weeks } : {}), assessments: heard.assessments, readings: heard.readings, ...(heard.discipline ? { discipline: heard.discipline } : {}) } } });
+    emitState({ detail: { heard: { ...(heard.weeks !== undefined ? { weeks: heard.weeks } : {}), assessments: heard.assessments, readings: heard.readings, ...(heard.discipline ? { discipline: heard.discipline } : {}) } } });
+    stepTo({ type: 'INTAKE_DONE' }); // → author A
 
-    // ── author Pass A (skeleton) with degenerate retry ──
-    const statedWeeks = detectWeeks(briefText);
+    // ── author Pass A (skeleton); the REDUCER owns the degenerate retry/block ──
+    const statedWeeks = detectWeeks(fullBrief);
     let skeleton = null as ReturnType<typeof passASchema.parse> | null;
-    for (let attempt = 0; attempt < 2 && !skeleton; attempt++) {
+    let parseFailures = 0;
+    while (!skeleton) {
       clock.tick?.();
-      record('author', `A attempt ${attempt + 1}`);
-      emit({ state: 'author', pass: 'A' });
+      record('author', `A attempt ${ctx.passARetries + parseFailures + 1}`);
+      emitState();
       const res = await model.completeJSON({
         purpose: 'authorA',
         reasoning: 'low', // Pass A at low reasoning — the biggest cost win (trap #3)
         system: authorASystem(),
-        user: authorAUser(briefText, attempt > 0),
-        payload: { brief: briefText },
+        user: authorAUser(fullBrief, ctx.passARetries + parseFailures > 0),
+        payload: { brief: fullBrief },
       });
       ledger.add('author', res);
       const parsed = passASchema.safeParse(res.json);
       if (!parsed.success) {
-        if (attempt === 1) return finishBlocked('contract-violation');
+        parseFailures += 1;
+        if (parseFailures >= 2) return finishBlocked('contract-violation');
         continue;
       }
       const lint = lintSkeleton(parsed.data, statedWeeks);
       if (!lint.ok) {
-        if (attempt === 1) return finishBlocked('degenerate-skeleton');
-        continue; // retry once with the expansion reminder
+        const next = stepTo({ type: 'PASS_A_DEGENERATE' }); // reducer: retry once, then blocked
+        if (next.state === 'blocked') return finishBlocked('degenerate-skeleton');
+        continue;
       }
       skeleton = parsed.data;
     }
-    if (!skeleton) return finishBlocked('degenerate-skeleton');
+    stepTo({ type: 'PASS_A_DONE', skeleton: { sessions: skeleton.sessions.length, assessments: skeleton.assessments.length } }); // → author B
 
     if (opts.lens) skeleton.discipline = opts.lens as typeof skeleton.discipline;
     course.graph = assembleSkeleton(skeleton);
@@ -129,7 +158,7 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
     // single batch that fails or returns bad shape fails THAT batch, not the
     // build (contract §A5); results merge in session order (deterministic ids).
     const total = course.graph.sessions.length;
-    emit({ state: 'author', pass: 'B', batch: { done: 0, total } });
+    emitState({ batch: { done: 0, total } });
     const ordered = [...course.graph.sessions].sort((a, b) => a.index - b.index);
     let done = 0;
     for (let i = 0; i < ordered.length; i += AUTHOR_B_CONCURRENCY) {
@@ -158,7 +187,8 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
         // a rejected batch (provider error after retries) degrades that session
         // to its structural skeleton — loud in the receipt, never a build failure
         done++;
-        emit({ state: 'author', pass: 'B', batch: { done, total } });
+        stepTo({ type: 'PASS_B_BATCH_DONE', batch: done }); // self-transition (progress)
+        emitState({ batch: { done, total } });
       }
     }
     record('author', 'done');
@@ -166,64 +196,79 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
     // ── link (genome cache, $0) — …and the cache verifies: a genome hit
     //    overwrites any unverified candidate (cache-first, founding §7) ──
     clock.tick?.();
+    stepTo({ type: 'AUTHOR_DONE' }); // → link
     const linkSummary = linkStage(course);
     record('link', `${linkSummary.linked}/${linkSummary.total}`);
-    emit({ state: 'link', detail: linkSummary });
+    emitState({ detail: linkSummary });
     markProvenance(course); // after link: concepts exist and genomeRefs are known
 
     // ── judge (prerequisite gaps + cited bridges) ──
     clock.tick?.();
+    stepTo({ type: 'LINK_DONE' }); // → judge
     const judgeSummary = judgeStage(course);
     record('judge', `${judgeSummary.gaps} gaps`);
-    emit({ state: 'judge', detail: judgeSummary });
+    emitState({ detail: judgeSummary });
 
     // ── compile (deterministic render; $0) ──
     clock.tick?.();
+    stepTo({ type: 'JUDGE_DONE' }); // → compile
     record('compile');
-    emit({ state: 'compile', detail: { artifacts: 0 } });
+    emitState({ detail: { artifacts: renderArtifactCount(course) } });
 
-    // ── voice (paid, budgeted, loud fallback) ──
+    // ── voice (paid, budgeted, loud fallback) — the reducer routes compile →
+    //    voice or verify per ctx.voiceEnabled ──
+    stepTo({ type: 'COMPILE_DONE' });
     if (voiceEnabled) {
       let vDone = 0;
       let vFallbacks = 0;
       const vTotal = collectSurfaces(course).length;
-      emit({ state: 'voice', detail: { surfaces: { done: 0, total: vTotal }, fallbacks: 0 } });
+      emitState({ detail: { surfaces: { done: 0, total: vTotal }, fallbacks: 0 } });
       const vres = await voiceStage(course, meteredModel(model, ledger, 'voice'), {
         budgetUsd: Math.min(0.04, budget),
-        onSurface: (_sid, fallback) => {
+        onSurface: (sid, fallback) => {
           vDone++;
           if (fallback) vFallbacks++;
-          emit({ state: 'voice', detail: { surfaces: { done: vDone, total: vTotal }, fallbacks: vFallbacks } });
+          stepTo({ type: 'VOICE_SURFACE_DONE', surfaceId: sid, fallback }); // self-transition
+          emitState({ detail: { surfaces: { done: vDone, total: vTotal }, fallbacks: vFallbacks } });
         },
       });
       record('voice', `${vres.fallbacks} fallbacks`);
       markVoiceProvenance(course);
+      stepTo({ type: 'VOICE_DONE' }); // → verify
     }
 
-    // ── verify (P0 gate) ──
+    // ── verify (P0 gate; the reducer routes failed>0 → blocked) ──
     clock.tick?.();
     const v = verify(course);
     record('verify', `${v.failed} failed`);
-    emit({ state: 'verify', detail: { checked: v.checked, failed: v.failed, warnings: v.warnings } });
-    if (v.failed > 0) return finishBlocked('verification-blockers');
+    emitState({ detail: { checked: v.checked, failed: v.failed, warnings: v.warnings } });
+    const afterVerify = stepTo({ type: 'VERIFY_DONE', failed: v.failed });
+    if (afterVerify.state === 'blocked') return finishBlocked('verification-blockers');
 
     // ── grade (the dual meter; never stale) ──
     clock.tick?.();
     const gradedAt = clock.nowISO();
     record('grade');
-    emit({ state: 'grade' });
+    emitState();
     course.receipts.quality = grade(course, gradedAt);
 
     // ── ready ──
+    stepTo({ type: 'GRADE_DONE' });
     course.receipts.cost = ledger.toLedger();
     record('ready');
     course.receipts.builds.push({ buildId, startedAt: startISO, states, terminal: 'ready', costUsd: ledger.total() });
-    emit({ state: 'ready' });
+    emitState();
     return { course, terminal: 'ready' };
   } catch (err) {
+    if (err instanceof IllegalTransitionError) throw err; // a machine bug is a programming error — never a quiet blocked
     if (err instanceof BudgetExceededError) return finishBlocked('budget-exceeded');
     return finishBlocked('provider-failure');
   }
+}
+
+/** artifact count for the compile state's detail — derived, never stored */
+function renderArtifactCount(course: Course): number {
+  return render(course).artifacts.length;
 }
 
 function markProvenance(course: Course): void {

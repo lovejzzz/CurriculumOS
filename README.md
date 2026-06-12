@@ -33,9 +33,11 @@ POST  /courses        brief in → a Course Object out (graph, artifacts, grade,
 PATCH /courses/{id}   a typed EditOp batch in → a diff + a fresh grade + an itemized cost out.
 ```
 
-Everything else is a read or a render: `GET /courses/{id}`, `/receipt`, `/package?format=zip`, `/events`,
-`/artifacts/{kind}/{scope}`, and `POST /courses/{id}/chat` (the TA — a tool-calling agent whose tools are EditOps,
-so its edits diff and re-grade like everyone else's). See [docs/handoff/010-schema/api.md](docs/handoff/010-schema/api.md).
+Everything else is a read or a render: `GET /courses/{id}`, `/receipt`, `/package?format=zip` (the teacher-ready
+DOCX/PPTX/XLSX set; `format=markdown` for the diff-friendly render), `/events`, `/observations` (the proactive TA),
+`/artifacts/{kind}/{scope}`, `POST /courses/{id}/undo` (event-sourced), and `POST /courses/{id}/chat` (the TA — a
+tool-calling agent whose tools are EditOps, so its edits diff and re-grade like everyone else's).
+See [docs/handoff/010-schema/api.md](docs/handoff/010-schema/api.md) and [CHANGELOG.md](CHANGELOG.md).
 
 ## The Course Object
 
@@ -58,6 +60,9 @@ pnpm run ci
 
 # run a Crucible round against the deterministic fake engine ($0, no key needed)
 pnpm crucible -- --courses all
+
+# a judged round on the real provider (the judge's drift vs the meter is gated, G6)
+OPENAI_API_KEY=sk-... pnpm crucible -- --courses smoke --real --voice --judge --max-spend 0.5
 
 # the server home (set a key for real builds; falls back to the fake engine without one)
 OPENAI_API_KEY=sk-... OPENAI_MODEL=gpt-5.4-mini pnpm api      # :8787

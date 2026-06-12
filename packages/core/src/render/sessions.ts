@@ -2,6 +2,7 @@
  *  discussions, studyGuides. Each renders from the same graph + kernels. */
 import type { Concept, Course, Kernel, Session } from '../schema/courseObject.ts';
 import { rotate } from '../util.ts';
+import { LENSES } from './templates/lenses.ts';
 import {
   CLOSING_FRAMES,
   CORE_FRAMES,
@@ -56,14 +57,20 @@ export function renderLessonPlan(course: Course, s: Session): RenderedArtifact {
     `${rotate(WARMUP_FRAMES, i)} ${topic.toLowerCase()}. This session matters because it carries an idea the rest of the course builds on.`;
   blocks.push(voiceBlock(course, `plan:${s.id}:opener`, 'opener', compiledOpener, 'Why this session matters'));
 
-  // Arc: warm-up → core → practice → closing, each tied to an outcome
+  // Arc: warm-up → core → practice → closing, each tied to an outcome.
+  // Discipline-specific frames when the lens defines them (a cs session reads
+  // like cs, a lab like a lab); the generic pools are the fallback.
+  const lensArc = LENSES[course.graph.discipline].arc;
+  const t = topic.toLowerCase();
+  const phase = (pool: string[] | undefined, generic: string[], idx: number): string =>
+    pool ? `${rotate(pool, idx).replace(/%s/g, t)}.` : `${rotate(generic, idx)} ${t}.`;
   const arcRows: string[][] = [['Phase', 'Activity', 'Outcome']];
   const o1 = outcomes[0]?.id ?? '—';
   const o2 = outcomes[1]?.id ?? o1;
-  arcRows.push(['Warm-up', `${rotate(WARMUP_FRAMES, i + 1)} ${topic.toLowerCase()}.`, o1]);
-  arcRows.push(['Core', `${rotate(CORE_FRAMES, i)} ${topic.toLowerCase()}.`, o1]);
-  arcRows.push(['Practice', `${rotate(PRACTICE_FRAMES, i)} ${topic.toLowerCase()}.`, o2]);
-  arcRows.push(['Closing', `${rotate(CLOSING_FRAMES, i)} the session's key idea.`, o2]);
+  arcRows.push(['Warm-up', phase(lensArc?.warmup, WARMUP_FRAMES, i + 1), o1]);
+  arcRows.push(['Core', phase(lensArc?.core, CORE_FRAMES, i), o1]);
+  arcRows.push(['Practice', phase(lensArc?.practice, PRACTICE_FRAMES, i), o2]);
+  arcRows.push(['Closing', phase(lensArc?.closing, CLOSING_FRAMES, i), o2]);
   blocks.push({ kind: 'arc', heading: 'Session arc', rows: arcRows });
 
   // Materials: readings + resources by id
@@ -107,8 +114,15 @@ export function renderLessonPlan(course: Course, s: Session): RenderedArtifact {
     blocks.push({ kind: 'kernel', entityId: c.id, heading: `Subject focus: ${c.name}`, children });
   }
 
-  // Transition notes — voice surface
-  const compiledTransitions = `Move between phases by checking that students can state the session's idea before applying it.`;
+  // Transition notes — voice surface, content-aware: the narrative through-line
+  // names the actual neighboring sessions (arc is a course property, not a slogan)
+  const ordered = [...course.graph.sessions].sort((a, b) => a.index - b.index);
+  const prev = ordered.find((x) => x.index === s.index - 1);
+  const next = ordered.find((x) => x.index === s.index + 1);
+  const compiledTransitions = [
+    prev ? `This session builds directly on "${prev.title}" (${prev.id}) — open by surfacing what carried over.` : `This session opens the course — anchor expectations before diving in.`,
+    next ? `Close by pointing forward: today's work on ${topic.toLowerCase()} is what "${next.title}" (${next.id}) will assume.` : `Close by consolidating: this is the course's last session, so the synthesis is the destination.`,
+  ].join(' ');
   blocks.push(voiceBlock(course, `plan:${s.id}:transition-notes`, 'transition-notes', compiledTransitions, 'Transition notes'));
 
   return {
@@ -138,6 +152,19 @@ export function renderSlideDeck(course: Course, s: Session): RenderedArtifact {
     meta: note('State each outcome and how it will be assessed.'),
   });
 
+  // agenda: the session arc as an overview slide
+  slides.push({
+    kind: 'slide',
+    heading: 'Session plan',
+    rows: [
+      ['Warm-up', 'Surface what you already believe.'],
+      ['Core', 'Build the central idea together.'],
+      ['Practice', 'Apply it to a concrete case.'],
+      ['Closing', 'Check what stuck.'],
+    ],
+    meta: note('Walk the arc so students know where the session is going.'),
+  });
+
   let visuals = 0;
   for (const c of concepts) {
     const k = kernelFor(course, c.id);
@@ -148,11 +175,25 @@ export function renderSlideDeck(course: Course, s: Session): RenderedArtifact {
       text: k?.definition ?? `Core idea: ${c.name}.`,
       meta: note(k ? `Emphasize: ${k.definition}` : `Explain ${c.name} from first principles.`),
     });
+    if (k?.misconceptions[0]) {
+      slides.push({
+        kind: 'slide',
+        entityId: c.id,
+        heading: 'A common misconception',
+        text: `Many believe: ${k.misconceptions[0].claim}\nIn fact: ${k.misconceptions[0].correction}`,
+        meta: note('Let students argue for the misconception before correcting it.'),
+      });
+    }
     // native concept-map visual (zero AI calls) — rendered from graph data
     slides.push({
       kind: 'slide',
       heading: `${c.name} — concept map`,
-      meta: { ...note(`Walk the relationships around ${c.name}.`), visual: 'concept-map', concept: c.name },
+      meta: {
+        ...note(`Walk the relationships around ${c.name}.`),
+        visual: 'concept-map',
+        concept: c.name,
+        related: concepts.filter((x) => x.id !== c.id).map((x) => x.name).slice(0, 4),
+      },
     });
     visuals++;
     if (k?.workedExample) {
@@ -160,7 +201,7 @@ export function renderSlideDeck(course: Course, s: Session): RenderedArtifact {
         kind: 'slide',
         heading: 'Worked example',
         text: `${k.workedExample.setup} → ${k.workedExample.answer}`,
-        meta: { ...note(k.workedExample.steps.join('; ')), visual: 'worked-example-chart' },
+        meta: { ...note(k.workedExample.steps.join('; ')), visual: 'worked-example-chart', steps: k.workedExample.steps, answer: k.workedExample.answer },
       });
       visuals++;
     }
@@ -238,6 +279,17 @@ export function renderStudyGuide(course: Course, s: Session): RenderedArtifact {
       return [c.id, c.name, k?.definition ?? '—'];
     }),
   });
+
+  // K2 / verdict ledger ("no-study-guide-pairs-hanzi-with-tone-marked-pinyin"):
+  // every non-Latin term renders WITH its romanization in the study guide
+  const termRows: string[][] = [];
+  for (const c of concepts) {
+    const k = kernelFor(course, c.id);
+    if (k?.romanization) for (const [term, rm] of Object.entries(k.romanization)) termRows.push([term, rm]);
+  }
+  if (termRows.length) {
+    blocks.push({ kind: 'terms', heading: 'Terms', rows: [['Term', 'Romanization'], ...termRows] });
+  }
 
   const misconceptions = concepts
     .map((c) => kernelFor(course, c.id)?.misconceptions[0])

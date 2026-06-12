@@ -174,7 +174,7 @@ export function attachKernelCandidates(course: Course, batch: PassB): void {
     const kernel: Kernel = {
       conceptId: concept.id,
       definition: k.definition,
-      misconceptions: [k.misconception],
+      misconceptions: k.misconceptions,
       ...(k.workedExample ? { workedExample: k.workedExample } : {}),
       citations: [], // K3: unverified candidates carry no citations, ever
       sourceCue: 'the assigned course materials',

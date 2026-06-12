@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { build, getCourse, patch, type EditResult, type MachineState } from './api.ts';
+import { build, getCourse, patch, observations, undo, type EditResult, type MachineState, type MaterialIn, type Observation } from './api.ts';
 import { Door } from './components/Door.tsx';
 import { Spine } from './components/Spine.tsx';
 import { CourseDoc } from './components/CourseDoc.tsx';
@@ -18,17 +18,26 @@ export function App() {
   const [blocked, setBlocked] = useState<string | null>(null);
   const [glowIds, setGlowIds] = useState<Set<string>>(new Set());
   const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [obs, setObs] = useState<Observation[]>([]);
   const queueId = useRef(0);
   const weightTimer = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  async function onBuild(brief: string, voice: boolean) {
+  async function refreshObservations(id: string) {
+    try {
+      setObs(await observations(id));
+    } catch {
+      setObs([]);
+    }
+  }
+
+  async function onBuild(brief: string, voice: boolean, materials: MaterialIn[]) {
     setView('desk');
     setBuilding(true);
     setBlocked(null);
     setSeen(new Set());
     setCost(0);
     setCourse(null);
-    const result = await build(brief, { voice }, (s, c) => {
+    const result = await build(brief, { voice, materials }, (s, c) => {
       setMachine(s);
       setCost(c);
       setSeen((prev) => new Set(prev).add(s.state));
@@ -38,6 +47,7 @@ export function App() {
     if (result) {
       setCourse(result);
       if (result.receipts?.builds?.at(-1)?.terminal === 'blocked') setBlocked(result.receipts.builds.at(-1).blockedReason);
+      else if (result.id) void refreshObservations(result.id);
     }
   }
 
@@ -60,8 +70,22 @@ export function App() {
           .map((d) => d.summary)
           .join(' · ') || ops.map((o) => o.type).join(', ');
       setQueue((q) => [{ id: queueId.current++, summary, diff: res.diff, cost: res.cost.usd }, ...q].slice(0, 6));
+      void refreshObservations(course.id);
     } catch (e: any) {
       setQueue((q) => [{ id: queueId.current++, summary: `blocked: ${e.code ?? e.message}`, diff: [] }, ...q].slice(0, 6));
+    }
+  }
+
+  async function onUndo() {
+    if (!course) return;
+    const r = await undo(course.id);
+    if ('undone' in r) {
+      const fresh = await getCourse(course.id);
+      setCourse(fresh);
+      setQueue((q) => [{ id: queueId.current++, summary: `undid edit #${r.undone} — re-graded`, diff: [] }, ...q].slice(0, 6));
+      void refreshObservations(course.id);
+    } else {
+      setQueue((q) => [{ id: queueId.current++, summary: `undo refused: ${(r as any).message}`, diff: [] }, ...q].slice(0, 6));
     }
   }
 
@@ -92,7 +116,18 @@ export function App() {
           {!course && building && <p className="muted">Building… the Spine above narrates each stage.</p>}
           {course && <CourseDoc course={course} glowIds={glowIds} onWeightEdit={onWeightEdit} />}
         </div>
-        <div className="ta-pane">{course && <TA courseId={course.id} queue={queue} onApply={applyOps} />}</div>
+        <div className="ta-pane">
+          {course && (
+            <TA
+              courseId={course.id}
+              queue={queue}
+              observations={obs}
+              canUndo={(course.overlays?.edits?.length ?? 0) > 0}
+              onApply={applyOps}
+              onUndo={onUndo}
+            />
+          )}
+        </div>
       </div>
       {course && <Seal courseId={course.id} grade={course.receipts?.quality} />}
     </div>

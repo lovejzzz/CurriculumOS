@@ -65,10 +65,21 @@ export function checkVoice(input: VoiceContractInput): VoiceCheck {
   for (const n of numbersIn(voiced)) {
     if (!groundedNums.has(n)) violations.push(`W2-no-new-facts: new number "${n}"`);
   }
-  // W2 — no new proper nouns absent from the grounding set
-  const groundedNames = properNouns(grounding, false);
+  // W2 — no new proper nouns absent from the grounding set. Matching is
+  // lemma-level and case-insensitive: a discipline term the grounding carries
+  // lowercase ("the demand curve") may legitimately appear capitalized in
+  // voiced prose ("Demand", "Curve") — that is style, not a new fact. Only a
+  // name with NO lemma in the grounding is a claim (trap #10 calibration).
+  const groundingLower = grounding.toLowerCase();
+  const lemma = (w: string): string => w.toLowerCase().replace(/(ies|es|s|ed|ing)$/u, '');
+  const isGrounded = (name: string): boolean => {
+    const lower = name.toLowerCase();
+    if (groundingLower.includes(lower)) return true;
+    const stem = lemma(name);
+    return stem.length >= 3 && groundingLower.includes(stem);
+  };
   for (const name of properNouns(voiced, true)) {
-    if (!groundedNames.has(name)) violations.push(`W2-no-new-facts: new name "${name}"`);
+    if (!isGrounded(name)) violations.push(`W2-no-new-facts: new name "${name}"`);
   }
 
   return { ok: violations.length === 0, violations };

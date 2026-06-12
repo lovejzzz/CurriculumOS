@@ -114,10 +114,11 @@ export function renderRubric(course: Course, a: Assessment): RenderedArtifact {
   return { kind: 'rubrics', scope: a.id, title: `${a.id} ${a.title} — Rubric`, blocks, surfaces: [] };
 }
 
-function mcItem(course: Course, concept: Concept, idx: number, ns: string): RenderBlock {
+function mcItem(course: Course, concept: Concept, idx: number, ns: string, misconceptionIdx = 0): RenderBlock {
   const k = kernelFor(course, concept.id);
-  const correct = k ? k.misconceptions[0]?.correction ?? k.definition : `${concept.name} as defined in this session.`;
-  const wrong = k?.misconceptions[0]?.claim ?? `A common misunderstanding of ${concept.name}.`;
+  const m = k?.misconceptions[misconceptionIdx % Math.max(1, k.misconceptions.length)];
+  const correct = m?.correction ?? k?.definition ?? `${concept.name} as defined in this session.`;
+  const wrong = m?.claim ?? `A common misunderstanding of ${concept.name}.`;
   // distractors rotate by item index so no fixed option string repeats across a section (trap #9)
   const options = [
     correct,
@@ -144,9 +145,14 @@ export function renderQuiz(course: Course, s: Session): RenderedArtifact {
   const ns = `Q${s.index}`;
   const blocks: RenderBlock[] = [{ kind: 'header', entityId: s.id, heading: `${s.id} ${s.title} — Quiz`, text: `Item namespace: ${ns}` }];
   let n = 1;
-  // ≥6 items: MC (4 options), short answer, one applied — Bloom mix Understand+Apply
-  for (const c of concepts.slice(0, 4)) {
-    blocks.push(mcItem(course, c, n++, ns));
+  // ≥6 items: MC (4 options), short answer, one applied — Bloom mix Understand+Apply.
+  // Each misconception powers its own MC item (plurality there = variety here).
+  for (const c of concepts.slice(0, 3)) {
+    const k = kernelFor(course, c.id);
+    const mCount = Math.min(2, k?.misconceptions.length ?? 1);
+    for (let mi = 0; mi < mCount && n <= 5; mi++) {
+      blocks.push(mcItem(course, c, n++, ns, mi));
+    }
   }
   while (blocks.length < 5) {
     const c = concepts[0];
@@ -181,10 +187,13 @@ export function renderExam(course: Course, a: Assessment): RenderedArtifact {
     { kind: 'header', entityId: a.id, heading: `${a.id} · ${a.title}`, text: `${scopeLine} · Weight: ${a.weightPct ?? 'per instructor'}%` },
   ];
   let n = 1;
-  // ≥10 items, ≥1 per covered session, mixed types incl. short answer + essay
+  // ≥10 items, ≥1 per covered session, mixed types incl. short answer + essay;
+  // concept choice and misconception rotate so items vary across the exam
   for (const s of coveredSessions) {
     const concepts = conceptsOfSession(course, s.id);
-    if (concepts[0]) blocks.push(mcItem(course, concepts[0], n++, ns));
+    const c = concepts[(n - 1) % Math.max(1, concepts.length)];
+    if (c) blocks.push(mcItem(course, c, n, ns, (n - 1) % 2));
+    n++;
   }
   // top up to 10 with short answers across covered sessions
   let guard = 0;
