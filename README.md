@@ -4,7 +4,7 @@ _An engine that turns a description of a course into a verified, internally-cons
 
 The website was never the product. It is the first client of a brain called CurriculumOS, whose every answer proves itself: **no response without a receipt** — every result ships with its own grade, provenance, and price.
 
-Built from the [handoff kit](docs/handoff/) (`docs/000-founding.md` is the founding design). The ten Laws live in [design/LAWS.md](design/LAWS.md) and are CI-enforced review criteria.
+Built from the [handoff kit](docs/handoff/) (`docs/000-founding.md` is the founding design). The ten Laws live in [design/LAWS.md](design/LAWS.md) and are CI-enforced review criteria. Where this goes next — the full audit, the path to calibrated 10/10 teachability, and the versioned plan — lives in [docs/ROADMAP-V0.0.1.md](docs/ROADMAP-V0.0.1.md).
 
 ## What's here
 
