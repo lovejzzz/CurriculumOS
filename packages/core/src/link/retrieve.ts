@@ -14,7 +14,7 @@
 import type { Course } from '../schema/courseObject.ts';
 import type { RetrievalPort } from '../ports/index.ts';
 import type { GenomeConcept, GenomeShard } from '@curriculumos/knowledge';
-import { workMatches, topicMatches } from './relevance.ts';
+import { workMatches, topicMatches, suggestionMatches } from './relevance.ts';
 
 export interface RetrievalSummary {
   readingsEnriched: number;
@@ -82,7 +82,9 @@ export async function retrieveStage(course: Course, retrieval: RetrievalPort): P
       const s = wave[j]!;
       const lead = g.concepts.find((c) => c.id === s.conceptIds[0]);
       const hit = outcome.status === 'fulfilled' ? outcome.value : null;
-      if (!hit || !lead || !topicMatches(lead.name, { ...hit, subjects: [hit.title, ...(hit.subjects ?? [])] })) return;
+      // the SUGGESTION gate (strict, bidirectional): silence is safe, junk is
+      // not — campaign day 1 saw off-topic books judged worse than no book
+      if (!hit || !lead || !suggestionMatches(lead.name, hit)) return;
       const n = g.readings.filter((r) => r.id.startsWith(`R${s.index}.`)).length + 1;
       g.readings.push({
         id: `R${s.index}.${n}` as never,

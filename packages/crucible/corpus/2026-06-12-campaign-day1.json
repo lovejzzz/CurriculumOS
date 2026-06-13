@@ -1,0 +1,191 @@
+{
+  "stamp": "campaign-day1",
+  "date": "2026-06-12",
+  "spec": "campaign",
+  "courses": [
+    {
+      "id": "mandarin",
+      "terminal": "blocked:contract-violation",
+      "structural": 100,
+      "teachability": 3,
+      "judge": null,
+      "judgeCalls": [],
+      "drift": null,
+      "perArtifact": [],
+      "linked": 0,
+      "bridges": 0,
+      "costUsd": 0.0059
+    },
+    {
+      "id": "cs-python",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 7,
+      "judgeCalls": [
+        7
+      ],
+      "drift": 1,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 4,
+          "deficiency": "The required texts are wildly inappropriate for an introductory Python course (e.g., a spectral sequence text and a fiction title), which makes the syllabus unteachably incoherent as written."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 8,
+          "deficiency": "It is effective but over-scripted and repetitive, with several lines that read like template filler rather than a natural lesson plan a professor would use verbatim."
+        },
+        {
+          "artifact": "lessonPlan(S12)",
+          "score10": 8,
+          "deficiency": "The plan is coherent, but it is still heavily templated and includes awkward framing choices, especially the odd transition note tied to the midterm, that would need light cleanup."
+        },
+        {
+          "artifact": "quiz(S4)",
+          "score10": 8,
+          "deficiency": "The questions are aligned, but they are too predictable and close to the lesson wording, so they test recall more than genuine transfer or diagnostic understanding."
+        },
+        {
+          "artifact": "studyGuide(S12)",
+          "score10": 8,
+          "deficiency": "It summarizes the lesson well, but it mostly restates the core definitions instead of adding substantial new examples, pitfalls, or practice that students could use independently."
+        }
+      ],
+      "linked": 23,
+      "bridges": 1,
+      "costUsd": 0.2289
+    },
+    {
+      "id": "geology",
+      "terminal": "blocked:contract-violation",
+      "structural": 100,
+      "teachability": 3,
+      "judge": null,
+      "judgeCalls": [],
+      "drift": null,
+      "perArtifact": [],
+      "linked": 0,
+      "bridges": 0,
+      "costUsd": 0.0067
+    },
+    {
+      "id": "world-lit",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 9,
+      "judge": 6,
+      "judgeCalls": [
+        6,
+        6
+      ],
+      "drift": 3,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "Most sessions still point to placeholder readings (R2.1, R3.1, etc.) and the required-texts list does not actually supply the course's core canon, so the reading plan is not yet teachable as-is."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 8,
+          "deficiency": "It is substantively strong, but the session never really sets up a full Li Bai-versus-Du Fu comparison or a clearly aligned assessment task for that comparison."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 8,
+          "deficiency": "The central reading and activities are not fully aligned because The Waste Land is treated as core text without a matching materials entry or a tighter bridge to the creative outcome."
+        },
+        {
+          "artifact": "quiz(S4)",
+          "score10": 4,
+          "deficiency": "The answer key is visibly broken throughout ('Correct: B. A'), making the quiz unusable without repair."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 7,
+          "deficiency": "It mostly rephrases the lesson rather than adding new retrieval practice or explanatory depth, so it is helpful but still a light wrapper on the session notes."
+        }
+      ],
+      "linked": 16,
+      "bridges": 1,
+      "costUsd": 0.2164
+    },
+    {
+      "id": "art-history",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 6,
+      "judgeCalls": [
+        6
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 2,
+          "deficiency": "The required texts are badly mismatched to the course content—several readings are irrelevant or nonsensical for art history, so the syllabus would not be credible as-is."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 7,
+          "deficiency": "It stays too generic and repetitive, relying on abstract phrasing instead of a few concrete artworks and clearer comparative examples for Greek versus Roman art."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 8,
+          "deficiency": "The lesson is usable and concrete, but it is overly scripted and compresses Romanticism/Realism into a narrow binary that risks oversimplifying the movements."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 6,
+          "deficiency": "It has only a minimal amount of review material, so students get one definition and a couple of prompts rather than enough breadth to actually study from."
+        }
+      ],
+      "linked": 21,
+      "bridges": 1,
+      "costUsd": 0.1834
+    },
+    {
+      "id": "intro-philosophy",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 9,
+      "judge": 6,
+      "judgeCalls": [
+        6,
+        6
+      ],
+      "drift": 3,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 5,
+          "deficiency": "The reading list is incoherent and incomplete for the session sequence, with several sessions lacking texts and some assigned works being badly mismatched to the philosophy topics."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 6,
+          "deficiency": "The plan never engages a specific argument from the assigned text, so the activities remain generic annotation exercises rather than a text-driven philosophy lesson."
+        },
+        {
+          "artifact": "lessonPlan(S10)",
+          "score10": 7,
+          "deficiency": "It is structurally sound, but it stays too generic and does not teach Rawls's actual argument structure or core apparatus in enough concrete detail."
+        },
+        {
+          "artifact": "studyGuide(S10)",
+          "score10": 8,
+          "deficiency": "It is usable and clear, but it omits key Rawls-specific concepts such as the original position, veil of ignorance, and difference principle, so it flattens the reading into generic fairness language."
+        }
+      ],
+      "linked": 16,
+      "bridges": 0,
+      "costUsd": 0.1821
+    }
+  ],
+  "totalSpend": 0.8509,
+  "pass": false
+}

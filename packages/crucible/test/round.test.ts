@@ -27,6 +27,18 @@ describe('crucible (fake engine)', () => {
     expect(pass).toBe(true);
   });
 
+  it('the campaign spec resolves the 10/10 six and yields a committable corpus record (F.1)', async () => {
+    const { results, corpus } = await runRound({ courses: 'campaign', real: false, voice: false, maxSpend: Infinity, judge: false, corpus: true });
+    expect(results.map((r) => r.id)).toEqual(['mandarin', 'cs-python', 'geology', 'world-lit', 'art-history', 'intro-philosophy']);
+    expect(results.every((r) => r.terminal === 'ready')).toBe(true);
+    expect(corpus.spec).toBe('campaign');
+    expect(corpus.courses).toHaveLength(6);
+    for (const c of corpus.courses) {
+      expect(c.structural).toBeGreaterThanOrEqual(80);
+      expect(c.linked, `${c.id} links the genome`).toBeGreaterThanOrEqual(8); // v0.0.8 bar holds across the campaign set
+    }
+  });
+
   it('judge excerpts cut at a line boundary with an explicit marker, never mid-sentence (v0.0.8 scar)', () => {
     // the v0.0.8 round: a silent .slice(6000) made long lesson plans read as
     // truncated documents and the judge docked two courses for the harness's

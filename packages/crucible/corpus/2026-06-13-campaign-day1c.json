@@ -1,0 +1,236 @@
+{
+  "stamp": "campaign-day1c",
+  "date": "2026-06-13",
+  "spec": "campaign",
+  "courses": [
+    {
+      "id": "mandarin",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 6,
+      "judgeCalls": [
+        5,
+        6
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 7,
+          "deficiency": "The assessment structure is mechanically repetitive and under-specified: it lists 45 near-identical weekly items instead of a meaningful progression or distinct grading criteria."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 5,
+          "deficiency": "The instructional arc is generic and thin on actual Mandarin practice, with repeated placeholder-style activities that do not clearly move students from numbers to age and dates."
+        },
+        {
+          "artifact": "lessonPlan(S12)",
+          "score10": 4,
+          "deficiency": "It is mostly a template filled with broad statements and repetitive prompts, with too little concrete direction-language practice to function as a real class plan."
+        },
+        {
+          "artifact": "studyGuide(S12)",
+          "score10": 6,
+          "deficiency": "The content is usable, but it is not yet clean student-facing material because it mixes explanatory prose with awkward 'students think' phrasing and has some duplication."
+        }
+      ],
+      "linked": 11,
+      "bridges": 0,
+      "costUsd": 0.2481
+    },
+    {
+      "id": "cs-python",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 8,
+      "judgeCalls": [
+        8
+      ],
+      "drift": 0,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 7,
+          "deficiency": "The grading schema is oddly redundant and mechanically generated, with duplicated weekly quiz/lab rows and no real explanation of how the components fit pedagogically."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 8,
+          "deficiency": "The plan is strong, but it is overly scripted and repeats a few ideas in a way that feels templated rather than naturally sequenced for teaching."
+        },
+        {
+          "artifact": "lessonPlan(S12)",
+          "score10": 8,
+          "deficiency": "It has a clear arc, but the recursive examples are somewhat narrow and the session leans too heavily on trace-following instead of building broader conceptual flexibility."
+        },
+        {
+          "artifact": "quiz(S4)",
+          "score10": 8,
+          "deficiency": "The items are well aligned, but the applied question is a little under-specified because it asks for a corrected program without presenting a fully rigorous target form."
+        },
+        {
+          "artifact": "studyGuide(S12)",
+          "score10": 7,
+          "deficiency": "It is useful but thin: mostly definitions and recall prompts, with too little varied practice to support independent study at the level of the lesson."
+        }
+      ],
+      "linked": 20,
+      "bridges": 4,
+      "costUsd": 0.2217
+    },
+    {
+      "id": "geology",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 6,
+      "judgeCalls": [
+        6
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "The assessment plan is not operationalized: every weekly lab row uses the same placeholder label, so a professor cannot tell what is being graded or how the 14 lab assessments actually differ."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 5,
+          "deficiency": "The lesson is too generic and templated; the activities never specify concrete specimens, lab procedures, or eruption-case evidence students would actually work with."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 8,
+          "deficiency": "It is heavily scripted and repetitive, so the core definition is restated more than the lab work is developed into a sharper observation-to-application sequence."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 6,
+          "deficiency": "It is too thin for a weekly geology study guide: one key-concept row and two near-duplicate recall questions do not give enough retrieval practice or differentiation."
+        }
+      ],
+      "linked": 23,
+      "bridges": 4,
+      "costUsd": 0.2078
+    },
+    {
+      "id": "world-lit",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 9,
+      "judge": 7,
+      "judgeCalls": [
+        7
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 7,
+          "deficiency": "The reading architecture is incomplete: many sessions list placeholders or no readings at all, and the required-texts section names only one work despite the course overview naming many texts."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 7,
+          "deficiency": "The materials/source setup is not clean: the lesson is built around Du Fu and Li Bai, but the materials table is malformed and the primary text packet is too thin to support the session without edits."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 6,
+          "deficiency": "The lesson cites the wrong required text basis: it lists Laura Riding in Materials but teaches The Waste Land throughout, so the session is not source-aligned as written."
+        },
+        {
+          "artifact": "quiz(S4)",
+          "score10": 8,
+          "deficiency": "The quiz is mostly recall and restatement of the lesson’s own examples, with limited independent transfer or discriminating application beyond the scripted corrections."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 7,
+          "deficiency": "It duplicates the lesson too closely instead of condensing into a study aid, and it also inherits the same text mismatch between the listed reading and the Eliot-centered content."
+        }
+      ],
+      "linked": 22,
+      "bridges": 5,
+      "costUsd": 0.2058
+    },
+    {
+      "id": "art-history",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 6,
+      "judgeCalls": [
+        6
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "The course description, grading scheme, and schedule do not fully align, and the repeated weekly image-analysis rows read like templated filler rather than a coherent assessment structure."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 8,
+          "deficiency": "It is strong and teachable, but it is overly scripted and generic in places, relying on labeled image routines without naming specific artworks or sources for the analysis."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 5,
+          "deficiency": "The session arc is essentially placeholder text, with vague activities that do not concretely specify what students will do, see, or produce."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 7,
+          "deficiency": "It overcompresses Romanticism and Realism into a few memorization points and gives Realism too little visual and historical specificity."
+        }
+      ],
+      "linked": 19,
+      "bridges": 2,
+      "costUsd": 0.1824
+    },
+    {
+      "id": "intro-philosophy",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 9,
+      "judge": 7,
+      "judgeCalls": [
+        7
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "It is a usable course skeleton, but too many sessions have no readings and the repeated weekly-argument-analysis assessments are not differentiated enough to show a concrete instructional arc."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 8,
+          "deficiency": "The main weakness is sourcing and textual grounding: it leans on a well-built activity sequence, but the primary text is not fully integrated with a clear citation/locator and the Descartes excerpt is only loosely framed."
+        },
+        {
+          "artifact": "lessonPlan(S10)",
+          "score10": 7,
+          "deficiency": "It flattens distinct philosophical moves into one streamlined framework, so Rawls, social contract, and distributive justice are treated a bit too generically rather than with enough conceptual nuance."
+        },
+        {
+          "artifact": "studyGuide(S10)",
+          "score10": 7,
+          "deficiency": "It mostly repeats the lesson plan instead of adding fresh explanation, examples, or contrastive guidance that would deepen student understanding."
+        }
+      ],
+      "linked": 18,
+      "bridges": 0,
+      "costUsd": 0.1844
+    }
+  ],
+  "totalSpend": 1.2823,
+  "pass": true
+}

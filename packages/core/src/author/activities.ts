@@ -96,6 +96,10 @@ export function checkActivities(
   const texts = plan.phases.map((p) => p.activity.trim().toLowerCase());
   if (new Set(texts).size !== texts.length) v.push('duplicate phase scripts (templated)');
 
+  // no placeholder tokens (campaign day 1: a literal "[]" in a rendered
+  // lesson plan was a P0 — placeholders die at the contract, not the grader)
+  if (/\[\]|\bTBD\b|\{\{|\bXXX\b/i.test(combined)) v.push('placeholder token ("[]", "TBD", "{{") in the script');
+
   return { ok: v.length === 0, violations: v };
 }
 

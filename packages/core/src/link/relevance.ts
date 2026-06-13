@@ -65,3 +65,22 @@ export function topicMatches(conceptName: string, hit: RetrievalHit): boolean {
   const subjectRatio = overlapRatio(q, tokens(subjectText));
   return titleRatio >= 0.6 || subjectRatio >= 0.6 || (titleRatio >= 0.4 && subjectRatio >= 0.3);
 }
+
+/** Gate a SUGGESTED reading against the concept it would be attached to.
+ *  Suggesting a book is a positive editorial act on the instructor's syllabus
+ *  — the standard is strict and asymmetric: silence is safe, junk is not
+ *  (campaign day 1: a spectral-sequence text and a fiction title attached to
+ *  an intro Python course made the syllabus "unteachably incoherent").
+ *   - the concept must carry ≥2 distinctive tokens (a one-token concept like
+ *     "Lists" matches any sound-alike — unsuggestable);
+ *   - most concept tokens must appear in the hit (≥0.6) AND the hit's main
+ *     title must be mostly explained by the concept (≥0.6, bidirectional). */
+export function suggestionMatches(conceptName: string, hit: RetrievalHit): boolean {
+  const q = tokens(conceptName);
+  if (q.size < 2) return false;
+  const mainTitle = hit.title.split(/[:—–]/)[0] ?? hit.title;
+  const h = tokens(mainTitle);
+  const queryRatio = overlapRatio(q, tokens(hit.title));
+  const hitRatio = h.size === 0 ? 0 : overlapRatio(h, q);
+  return queryRatio >= 0.6 && hitRatio >= 0.6;
+}

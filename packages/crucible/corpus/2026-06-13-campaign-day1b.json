@@ -1,0 +1,204 @@
+{
+  "stamp": "campaign-day1b",
+  "date": "2026-06-13",
+  "spec": "campaign",
+  "courses": [
+    {
+      "id": "mandarin",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 7,
+      "judgeCalls": [
+        7
+      ],
+      "drift": 1,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "It has a solid course structure, but the assessments and schedule are too generic and repetitive to function as a fully teachable syllabus without clearer rubrics, deliverables, and activity detail."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 7,
+          "deficiency": "The lesson has accurate core content, but the session arc is overly abstract and templated, with activities that are described generically rather than as concrete classroom tasks."
+        },
+        {
+          "artifact": "lessonPlan(S12)",
+          "score10": 7,
+          "deficiency": "It covers useful transportation and direction language, but the instruction is still high-level and repetitive, lacking a specific sequence of communicative practice that would make the session feel ready to run as-is."
+        },
+        {
+          "artifact": "studyGuide(S12)",
+          "score10": 7,
+          "deficiency": "The guide includes good key terms and checks for understanding, but the retrieval practice is too formulaic and narrow to feel like a robust student study tool without revision."
+        }
+      ],
+      "linked": 9,
+      "bridges": 1,
+      "costUsd": 0.2563
+    },
+    {
+      "id": "cs-python",
+      "terminal": "blocked:verification-blockers",
+      "structural": 83,
+      "teachability": 8,
+      "judge": null,
+      "judgeCalls": [],
+      "drift": null,
+      "perArtifact": [],
+      "linked": 23,
+      "bridges": 1,
+      "costUsd": 0.2458
+    },
+    {
+      "id": "geology",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 6,
+      "judgeCalls": [
+        6
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "The course map is plausible but too skeletal: most labs are unnamed generic placeholders, readings are sparse, and the assessments lack concrete descriptions of what students actually do and learn."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 6,
+          "deficiency": "The instructional sequence is too vague and repetitive, with activities that do not specify an actual lab task, dataset, or specimen workflow for students to perform."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 7,
+          "deficiency": "The concept coverage is solid, but the session activities are still abstract and do not provide a concrete, teachable lab procedure or assessment task."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 8,
+          "deficiency": "It is usable and clear, but it is thin: the retrieval practice and concept coverage are too narrow to fully prepare students beyond the most basic distinctions."
+        }
+      ],
+      "linked": 25,
+      "bridges": 3,
+      "costUsd": 0.1988
+    },
+    {
+      "id": "world-lit",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 9,
+      "judge": 7,
+      "judgeCalls": [
+        6,
+        7
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "The assessment table and schedule are structurally shaky: repeated weekly-response rows, inconsistent close-reading weights, and several sessions with no readings, so it needs real editorial repair before use."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 8,
+          "deficiency": "The main weakness is that the plan is overly scripted around a few quoted lines, leaving little room for student-generated interpretation beyond the provided template."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 8,
+          "deficiency": "It is strong and teachable, but it leans too heavily on one Eliot passage and one repeated explanatory frame, so the session risks feeling narrower than the outcome set suggests."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 8,
+          "deficiency": "The guide is clear and usable, but it is mostly reiteration of the lesson language rather than a broader set of examples or practice that would deepen transfer."
+        }
+      ],
+      "linked": 20,
+      "bridges": 1,
+      "costUsd": 0.205
+    },
+    {
+      "id": "art-history",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 6,
+      "judgeCalls": [
+        6
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 5,
+          "deficiency": "The course description and assessment structure are generic placeholders (studios/portfolio pieces, 14 near-identical image analyses) and do not specify concrete survey readings, artworks, or assignment expectations."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 8,
+          "deficiency": "It relies on simplified Greek-vs-Roman binaries and generic image prompts instead of actual named artworks or a fuller range of classical examples, so the content is teachable but thin."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 4,
+          "deficiency": "The warm-up/core/practice/closing sections are essentially placeholders and do not spell out the specific artworks, prompts, or comparative tasks students would actually do."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 7,
+          "deficiency": "It is compressed into slogan-like definitions and retrieval items, with too little concrete artwork analysis or historical context to prepare students robustly."
+        }
+      ],
+      "linked": 24,
+      "bridges": 2,
+      "costUsd": 0.1928
+    },
+    {
+      "id": "intro-philosophy",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 9,
+      "judge": 6,
+      "judgeCalls": [
+        6,
+        6
+      ],
+      "drift": 3,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "The schedule and readings are underdeveloped and inconsistent: most sessions have no assigned text, so the course cannot actually be taught as a reading-based 12-session sequence without adding core primary sources and tightening alignment."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 5,
+          "deficiency": "The class activities are too vague and templated to run as-is, especially the core and practice phases, which describe generic engagement with the topic rather than a specific, text-anchored instructional sequence."
+        },
+        {
+          "artifact": "lessonPlan(S10)",
+          "score10": 7,
+          "deficiency": "The plan is conceptually solid but still too broad and generic, with no concrete primary passage or named reading to anchor the discussion of justice and political philosophy."
+        },
+        {
+          "artifact": "studyGuide(S10)",
+          "score10": 8,
+          "deficiency": "It is useful and substantive, but the study prompts remain a bit formulaic and detached from any specific assigned text or argument structure, limiting how precisely students can study from it."
+        }
+      ],
+      "linked": 21,
+      "bridges": 0,
+      "costUsd": 0.1857
+    }
+  ],
+  "totalSpend": 1.314,
+  "pass": false
+}

@@ -9,6 +9,7 @@ import {
   extensionShard,
   workMatches,
   topicMatches,
+  suggestionMatches,
   FakeModelPort,
   FakeRetrievalPort,
   FixedClock,
@@ -45,6 +46,18 @@ describe('citation relevance gate (K3 calibration — both directions)', () => {
   it('a topic sharing distinctive vocabulary passes', () => {
     const hit: RetrievalHit = { title: 'Price elasticity', externalIds: { openalex: 'C1' }, subjects: ['demand', 'microeconomics'] };
     expect(topicMatches('price elasticity of demand', hit)).toBe(true);
+  });
+
+  it('the SUGGESTION gate is strict and asymmetric (campaign day 1: junk readings on the Python syllabus)', () => {
+    // one-token concepts are unsuggestable — "Lists" matched a novel
+    const novel: RetrievalHit = { title: 'Lists', externalIds: { openlibrary: 'OL9' }, subjects: ['fiction'] };
+    expect(suggestionMatches('Lists', novel)).toBe(false);
+    // a sound-alike riding in on one shared token rejects (the spectral-sequence text)
+    const spectral: RetrievalHit = { title: 'Spectral Sequences in Algebraic Topology', externalIds: {}, subjects: ['mathematics'] };
+    expect(suggestionMatches('sequences and iteration', spectral)).toBe(false);
+    // a genuinely on-topic match still passes
+    const onTopic: RetrievalHit = { title: 'Greek and Roman Art', externalIds: { openlibrary: 'OL2' }, subjects: ['art history'] };
+    expect(suggestionMatches('Greek and Roman art', onTopic)).toBe(true);
   });
 });
 

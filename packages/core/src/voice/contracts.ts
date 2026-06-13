@@ -54,6 +54,12 @@ export function checkVoice(input: VoiceContractInput): VoiceCheck {
   if (wc > max) violations.push(`W3-bounds: ${wc} words > ${max}`);
   // W3 — no headers inside surfaces
   if (/^#{1,6}\s|\n#{1,6}\s/.test(voiced)) violations.push('W3-headers: heading markup inside surface');
+  // W3 — complete prose: a surface must END (campaign day 1: a voiced deck
+  // hook trailing off mid-clause was a P1 in the rendered bytes) and may not
+  // carry placeholder tokens (a literal "[]" in a lesson plan was the P0
+  // that blocked cs-python)
+  if (!/[.!?:。！？"’”)]\s*$/.test(voiced.trim())) violations.push('W3-truncation: surface ends mid-clause (no terminal punctuation)');
+  if (/\[\]|\bTBD\b|\{\{|\bXXX\b|\blorem\b/i.test(voiced)) violations.push('W3-placeholder: placeholder token in surface');
 
   // W1 — frozen text survives verbatim
   for (const f of frozen) {

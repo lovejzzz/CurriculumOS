@@ -102,6 +102,11 @@ export const philosophy: GenomeShard = {
           correction: 'Both are argued positions: Descartes’ conceivability argument and the knowledge argument (Mary the color scientist) are reasons, not creeds — and physicalism owes an answer to them, not a dismissal.',
         },
       ],
+      excerpt: {
+        work: 'Meditations on First Philosophy (Descartes)',
+        text: 'It is certain that I am really distinct from my body, and can exist without it.',
+        locator: 'Meditation VI — the conceivability argument',
+      },
       citations: [{ title: 'CurriculumOS genome: the mind-body problem', source: 'genome', externalId: 'philosophy/mind-body' }],
     },
     {
@@ -121,6 +126,11 @@ export const philosophy: GenomeShard = {
           correction: 'Locke’s view meets hard cases head-on — circularity (genuine memory presupposes identity), gaps (the drunk forgets, the general remembers the boy only via the officer), and duplication all pressure the simple memory criterion.',
         },
       ],
+      excerpt: {
+        work: 'An Essay Concerning Human Understanding (Locke)',
+        text: 'As far as this consciousness can be extended backwards to any past action or thought, so far reaches the identity of that person.',
+        locator: 'Book II, ch. xxvii §9',
+      },
       citations: [{ title: 'CurriculumOS genome: personal identity', source: 'genome', externalId: 'philosophy/personal-identity' }],
     },
     {
@@ -145,6 +155,11 @@ export const philosophy: GenomeShard = {
         steps: ['All three actions are caused — determinism treats them alike.', 'Compatibilism distinguishes: coercion (gun), internal compulsion (addiction), responsiveness to one’s own reasons (donor).', 'Only the third is free in the compatibilist sense; ask whether that captures what responsibility needs.'],
         answer: 'The sorting shows the compatibilist criterion at work — and the open question is whether reason-responsiveness is enough for desert, or only for excuse-management.',
       },
+      excerpt: {
+        work: 'An Enquiry Concerning Human Understanding (Hume)',
+        text: 'By liberty, then, we can only mean a power of acting or not acting, according to the determinations of the will.',
+        locator: 'Section VIII, Part I — the classical compatibilist definition',
+      },
       citations: [{ title: 'CurriculumOS genome: free will', source: 'genome', externalId: 'philosophy/free-will' }],
     },
     {
@@ -164,6 +179,11 @@ export const philosophy: GenomeShard = {
           correction: 'The argument claims contingent things need causes and concludes with a NON-contingent terminus — the retort must engage that distinction (is necessary existence coherent? why exempt anything?), which is where the serious objections live.',
         },
       ],
+      excerpt: {
+        work: 'Proslogion (Anselm)',
+        text: 'God is that than which nothing greater can be conceived.',
+        locator: 'ch. II — the ontological argument’s famous premise',
+      },
       citations: [{ title: 'CurriculumOS genome: arguments for God', source: 'genome', externalId: 'philosophy/god-arguments' }],
     },
     {
@@ -231,6 +251,10 @@ export const philosophy: GenomeShard = {
           correction: 'The veil REMOVES the information self-interest needs (your class, talents, conception of the good), forcing impartial principles; the maximin reasoning behind the difference principle is a choice under uncertainty, not a poll.',
         },
       ],
+      excerpt: {
+        work: 'A Theory of Justice (Rawls)',
+        locator: '§24 (the veil of ignorance) and §11 (the two principles of justice)',
+      },
       citations: [{ title: 'CurriculumOS genome: justice', source: 'genome', externalId: 'philosophy/justice' }],
     },
     {
@@ -250,6 +274,11 @@ export const philosophy: GenomeShard = {
           correction: 'Philosophy clarifies what the question ASKS (purpose? value? narrative intelligibility?), separates strands, and evaluates answers — Camus, Wolf, and Nagel make progress precisely by making the question tractable.',
         },
       ],
+      excerpt: {
+        work: 'Ecclesiastes',
+        text: 'Vanity of vanities; all is vanity. What profit hath a man of all his labour which he taketh under the sun?',
+        locator: '1:2–3 — the oldest statement of the problem',
+      },
       citations: [{ title: 'CurriculumOS genome: the meaning of life', source: 'genome', externalId: 'philosophy/meaning-of-life' }],
     },
   ],

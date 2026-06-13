@@ -1,5 +1,38 @@
 # Changelog
 
+## V0.0.9 — June 12, 2026
+
+Workstream F of [the 10/10 plan](docs/PLAN-10-OF-10.md): measurement that
+can't lie — then campaign day 1, run until GREEN.
+
+**The harness:**
+- `--courses campaign` resolves the 10/10 six (four audit + art-history +
+  intro-philosophy); campaign runs write **versioned corpus records** to
+  `packages/crucible/corpus/` (committed history with per-artifact scores —
+  the archive the 10/10 claim will cite).
+- **Judge stability (F.3)**: a verdict that would fail the drift gate is
+  re-asked once and the average gates; both calls are archived. It fired on
+  mandarin (5, 6 → 6) — one point of judge variance no longer fails a round.
+
+**Campaign day 1 — three runs, each FAIL converted to fixes with fixtures:**
+
+| run | verdict | what the corpus exposed |
+| --- | --- | --- |
+| 1 | FAIL | 2/6 courses blocked on intermittent Pass A malformed JSON (now 3 attempts, every failure NAMED in the build record); junk suggested readings ("a spectral sequence text" on intro Python — syllabus judged "unteachably incoherent"); a stale bare-letter answer key rendering "Correct: B. A"; array answer keys rejected whole sessions |
+| 2 | FAIL | a literal `[]` placeholder in a rendered lesson plan (P0, blocked cs-python) and a voiced deck hook trailing off mid-clause — both now die at the CONTRACTS (W3 truncation + placeholder lints on voice and Pass D), not at the grader; bare reading ids in the schedule read as placeholders (now id + title); intro-philosophy judged "text-agnostic" (six more public-domain primary texts in the philosophy shard: Descartes, Locke, Hume, Anselm, Ecclesiastes, the Rawls locator) |
+| 3 | **PASS** | mandarin 6 · cs-python **8 (drift 0)** · geology 6 · world-lit 7 · art-history 6 · intro-philosophy 7 — six ready, six 100/A, zero export P0s, **every drift ≤ 2**, $1.28 total (~$0.21/course) |
+
+The **strict suggestion gate**: suggesting a book is a positive editorial act
+— one-token concepts are unsuggestable, and the match must be bidirectional
+(≥0.6 both ways). Silence is safe; junk is not.
+
+108 tests green. Honest residuals, named for v0.1.0/day 2: weekly assessments
+render as N near-identical rows (the judges' most repeated complaint), lesson
+activities still lean templated on lab/drill courses (geology S4, mandarin),
+study guides echo lesson language. The 10/10 bar (judge ≥ 9 per artifact
+class) remains the campaign's open distance — day 1 green is the floor under
+it, not the claim.
+
 ## V0.0.8 — June 12, 2026
 
 Workstream E of [the 10/10 plan](docs/PLAN-10-OF-10.md): genome breadth for the

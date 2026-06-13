@@ -151,10 +151,15 @@ export async function buildCourse(briefText: string, ports: BuildPorts, opts: Bu
       ledger.add('author', res);
       const parsed = passASchema.safeParse(res.json);
       if (!parsed.success) {
-        // retry once with the violated rules QUOTED (020-contracts intro)
+        // retry with the violated rules QUOTED (020-contracts intro). Three
+        // attempts, not two: campaign day 1 blocked 2/6 courses on what is a
+        // ~25% intermittent malformed-JSON rate — two tries ride out one bad
+        // draw, three ride out two. Every failure is NAMED in the build
+        // record (Law 6: a blocked build must explain itself).
         lastViolations = parsed.error.issues.slice(0, 5).map((i) => `${i.path.join('.')}: ${i.message}`);
         parseFailures += 1;
-        if (parseFailures >= 2) return finishBlocked('contract-violation');
+        record('author', `A parse failure ${parseFailures}: ${lastViolations.join('; ').slice(0, 160)}`);
+        if (parseFailures >= 3) return finishBlocked('contract-violation');
         continue;
       }
       const lint = lintSkeleton(parsed.data, statedWeeks);

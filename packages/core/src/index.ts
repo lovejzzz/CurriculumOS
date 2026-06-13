@@ -54,7 +54,7 @@ export { linkStage } from './link/index.ts';
 export { judgeStage } from './judge/index.ts';
 export { retrieveStage, extensionShard } from './link/retrieve.ts';
 export type { RetrievalSummary } from './link/retrieve.ts';
-export { workMatches, topicMatches } from './link/relevance.ts';
+export { workMatches, topicMatches, suggestionMatches } from './link/relevance.ts';
 
 // voice
 export { voiceStage, collectSurfaces, voiceRefreshSurface, VOICE_BUDGET_USD } from './voice/index.ts';

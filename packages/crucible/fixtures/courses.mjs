@@ -229,11 +229,17 @@ export function pickStranger(date = new Date(), pool = strangerPool) {
   return pool[(dayOfYear(date) - 1) % pool.length] || pool[0];
 }
 
+// The 10/10 campaign set (PLAN-10-OF-10 §1/F.1): the four audit courses plus
+// two strangers — six courses, judged, twice on different days, archived in
+// the corpus. THIS is the set the 10/10 claim is made on.
+const CAMPAIGN_COURSE_IDS = [...AUDIT_COURSE_IDS, 'art-history', 'intro-philosophy'];
+
 /**
  * Resolve a --courses spec into course objects.
  * Accepts:
  *   'all'      → the original four audit courses (release-comparable bar).
  *   'extended' → all ten (the four audit + six genome courses).
+ *   'campaign' → the 10/10 campaign six (four audit + two strangers).
  *   'smoke'    → the smoke pool (cs-python).
  *   comma ids  → any subset, e.g. 'econ-intro,astro-101' or 'mandarin,geology'.
  */
@@ -243,6 +249,7 @@ export function resolveCourses(spec) {
     return AUDIT_COURSE_IDS.map((id) => getCourseById(id));
   }
   if (value === 'extended') return [...referenceCourses];
+  if (value === 'campaign') return CAMPAIGN_COURSE_IDS.map((id) => getCourseById(id));
   if (value === 'smoke') return [...smokePool];
   const ids = value
     .split(',')

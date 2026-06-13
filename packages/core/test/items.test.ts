@@ -87,6 +87,29 @@ describe('item contracts (Pass C)', () => {
     expect(parsed.success, JSON.stringify(parsed.success ? '' : parsed.error.issues)).toBe(true);
     expect(parsed.data!.items.map((it) => it.kind)).toEqual(['mc', 'mc', 'mc', 'short-answer', 'applied']);
   });
+
+  it('normalizes answerKey shapes (campaign day 1: arrays and stale bare letters)', () => {
+    const opts = [
+      { text: 'Only between iterations.', correct: true },
+      { text: 'Continuously.', correct: false },
+      { text: 'After the loop.', correct: false },
+      { text: 'Never.', correct: false },
+    ];
+    const payload = {
+      items: [
+        { kind: 'mc', stem: 'S1?', options: opts, answerKey: ['part one', 'part two'], bloom: 'Apply' },
+        { kind: 'mc', stem: 'S2?', options: opts, answerKey: 'B', bloom: 'Apply' }, // stale letter ("Correct: B. A" scar)
+        { kind: 'mc', stem: 'S3?', options: opts, answerKey: 'Option C.', bloom: 'Apply' },
+        { kind: 'short-answer', stem: 'S4?', answerKey: 'A real key sentence.', bloom: 'Apply' },
+      ],
+    };
+    const parsed = itemsSchema.safeParse(payload);
+    expect(parsed.success).toBe(true);
+    expect(parsed.data!.items[0]!.answerKey).toBe('part one; part two');
+    expect(parsed.data!.items[1]!.answerKey).toBe(''); // dropped → derives from the marked option
+    expect(parsed.data!.items[2]!.answerKey).toBe('');
+    expect(parsed.data!.items[3]!.answerKey).toBe('A real key sentence.');
+  });
 });
 
 describe('Pass C end-to-end (fake authors real items)', () => {

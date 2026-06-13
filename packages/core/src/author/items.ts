@@ -38,8 +38,18 @@ export const itemsSchema = z.object({
         options: z
           .array(z.object({ text: z.string().min(1), correct: z.boolean(), rationale: z.string().optional() }))
           .optional(),
-        // MC items may omit the key — the marked correct option IS the key
-        answerKey: z.string().nullish().transform((v) => v ?? ''),
+        // MC items may omit the key — the marked correct option IS the key.
+        // Arrays join (campaign day 1: "Expected string, received array");
+        // a bare option-letter reference ("A", "Option B.") is NOT a key —
+        // it goes stale the moment options rotate (the "Correct: B. A" scar),
+        // so it drops and the key derives from the marked correct option.
+        answerKey: z
+          .union([z.string(), z.array(z.string())])
+          .nullish()
+          .transform((v) => {
+            const s = Array.isArray(v) ? v.filter(Boolean).join('; ') : (v ?? '');
+            return /^\s*(option\s*)?[a-d][.)]?\s*$/i.test(s) ? '' : s;
+          }),
         bloom: bloomEnum,
         concept: z.string().nullish().transform((v) => v ?? undefined),
       }),

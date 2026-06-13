@@ -54,8 +54,10 @@ export function renderSyllabus(course: Course): RenderedArtifact {
     const due = assessmentsDueIn(course, s.id)
       .map((a) => `${a.id} ${a.title}`)
       .join('; ');
+    // id + TITLE, like the Due cell — a bare "R2.1" reads as a placeholder
+    // (campaign day 1: "most sessions point to placeholder readings")
     const readings = readingsForSession(course, s.id)
-      .map((r) => `${r.id}${r.locator ? ` (${r.locator})` : ''}`)
+      .map((r) => `${r.id} ${r.title.length > 44 ? r.title.slice(0, 41).trimEnd() + '…' : r.title}${r.locator ? ` (${r.locator})` : ''}`)
       .join('; ');
     scheduleRows.push([s.id, s.title, due || '—', readings || '—']);
   }
