@@ -59,7 +59,7 @@ export function checkVoice(input: VoiceContractInput): VoiceCheck {
   // carry placeholder tokens (a literal "[]" in a lesson plan was the P0
   // that blocked cs-python)
   if (!/[.!?:。！？"’”)]\s*$/.test(voiced.trim())) violations.push('W3-truncation: surface ends mid-clause (no terminal punctuation)');
-  if (/\[\]|\bTBD\b|\{\{|\bXXX\b|\blorem\b/i.test(voiced)) violations.push('W3-placeholder: placeholder token in surface');
+  if (/\[\]|\bTBD\b|\{\{|\bXXX\b|\blorem\b|\bplaceholder\b/i.test(voiced)) violations.push('W3-placeholder: placeholder token in surface');
 
   // W1 — frozen text survives verbatim
   for (const f of frozen) {

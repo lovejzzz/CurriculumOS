@@ -1,0 +1,214 @@
+{
+  "stamp": "campaign-day2",
+  "date": "2026-06-13",
+  "spec": "campaign",
+  "courses": [
+    {
+      "id": "mandarin",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 7,
+      "judgeCalls": [
+        7
+      ],
+      "drift": 1,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 8,
+          "deficiency": "It is solidly structured, but the assessments are still generic placeholders rather than clearly defined tasks with criteria."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 7,
+          "deficiency": "The plan is substantive, but several phrasings and examples are awkward or inconsistent enough that I would want to clean them up before teaching."
+        },
+        {
+          "artifact": "lessonPlan(S12)",
+          "score10": 5,
+          "deficiency": "The session is mostly template language and vocabulary lists; it lacks a concrete instructional sequence with enough communicative practice to teach as-is."
+        },
+        {
+          "artifact": "quiz(S4)",
+          "score10": 9,
+          "deficiency": "It is well aligned and usable, but it stays mostly at written recognition rather than testing fuller language performance."
+        },
+        {
+          "artifact": "studyGuide(S12)",
+          "score10": 7,
+          "deficiency": "It repeats the lesson content adequately, but it does not add much new practice depth beyond restating the target vocabulary and misconceptions."
+        }
+      ],
+      "linked": 10,
+      "bridges": 3,
+      "costUsd": 0.2379
+    },
+    {
+      "id": "cs-python",
+      "terminal": "blocked:verification-blockers",
+      "structural": 88,
+      "teachability": 8,
+      "judge": null,
+      "judgeCalls": [],
+      "drift": null,
+      "perArtifact": [],
+      "linked": 17,
+      "bridges": 1,
+      "costUsd": 0.2147
+    },
+    {
+      "id": "geology",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 6,
+      "judgeCalls": [
+        6
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "Biggest flaw is the assessment design: a stem-lab geology course is graded only on a 50/50 midterm and final, with no lab reports, practicals, or recurring performance measures despite the course emphasizing lab work."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 6,
+          "deficiency": "Biggest flaw is weak instructional specificity: the phases and prompts are mostly generic or awkwardly phrased, so a professor would need to rewrite the activity sequence and checks for understanding before teaching it."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 7,
+          "deficiency": "Biggest flaw is over-scripted repetition: the lesson is concrete and teachable, but it overexplains the same distinction in nearly identical language and leaves little room for a more natural, field-based geology lesson."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 7,
+          "deficiency": "Biggest flaw is narrow scope: it accurately covers the core distinction between weathering and erosion, but it is too thin to support deeper study or transfer beyond the single misconception-focused summary."
+        }
+      ],
+      "linked": 24,
+      "bridges": 3,
+      "costUsd": 0.2058
+    },
+    {
+      "id": "world-lit",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 9,
+      "judge": 6,
+      "judgeCalls": [
+        6,
+        6
+      ],
+      "drift": 3,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 7,
+          "deficiency": "Its assessment structure is boilerplate and repetitive, with little distinction between assignments and some sessions lacking actual readings."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 4,
+          "deficiency": "It never really teaches Li Bai versus Du Fu; the plan is dominated by repeated generic phrasing and only one actual text excerpt."
+        },
+        {
+          "artifact": "quiz(S4)",
+          "score10": 2,
+          "deficiency": "The items are templated and shallow, with fake distractors and a short-answer prompt that is not a real answerable question."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 8,
+          "deficiency": "It is coherent, but too dependent on canned definitions and one Eliot line, so it lacks broader textual and historical depth."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 7,
+          "deficiency": "The lesson is teachable, but it is over-scripted and narrows modernist poetry to three concepts through a single excerpt and a fabricated fragment."
+        }
+      ],
+      "linked": 16,
+      "bridges": 1,
+      "costUsd": 0.1971
+    },
+    {
+      "id": "art-history",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 8,
+      "judge": 6,
+      "judgeCalls": [
+        5,
+        6
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 6,
+          "deficiency": "The assessment and reading structure is too generic and repetitive—14 identical image analyses plus a few vague or placeholder readings—so it reads more like a scaffold than a finished syllabus."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 5,
+          "deficiency": "It lacks concrete art-historical specificity, relying on repeated generic phrasing instead of named artworks, dates, or a real comparative sequence for Greek and Roman art."
+        },
+        {
+          "artifact": "lessonPlan(S11)",
+          "score10": 7,
+          "deficiency": "The substance is solid, but the session arc is mechanically phrased and underdeveloped, with too little concrete image-based activity beyond broad references to Romanticism and Courbet/Goya."
+        },
+        {
+          "artifact": "studyGuide(S11)",
+          "score10": 7,
+          "deficiency": "It is useful but narrow and repetitive, giving students definitions and retrieval items without enough varied visual examples or comparison practice to deepen understanding."
+        }
+      ],
+      "linked": 17,
+      "bridges": 1,
+      "costUsd": 0.1918
+    },
+    {
+      "id": "intro-philosophy",
+      "terminal": "ready",
+      "structural": 100,
+      "teachability": 9,
+      "judge": 7,
+      "judgeCalls": [
+        7
+      ],
+      "drift": 2,
+      "perArtifact": [
+        {
+          "artifact": "syllabus",
+          "score10": 5,
+          "deficiency": "It lists most sessions without actual readings or textual anchors, so the course outline is too skeletal to support a real 12-session philosophy class as written."
+        },
+        {
+          "artifact": "lessonPlan(S4)",
+          "score10": 8,
+          "deficiency": "The plan is highly scripted and leans on generic instructional language, with only thin engagement with the actual mind-body texts beyond a single Descartes quotation."
+        },
+        {
+          "artifact": "lessonPlan(S10)",
+          "score10": 8,
+          "deficiency": "The session is coherent, but the philosophical debate is still flattened into a template of definitions and compare/contrast prompts rather than a fuller argument-based lesson."
+        },
+        {
+          "artifact": "studyGuide(S10)",
+          "score10": 8,
+          "deficiency": "It is useful and accurate, but much of it is answer-stating rather than retrieval practice, so it gives students definitions without enough varied application."
+        }
+      ],
+      "linked": 22,
+      "bridges": 0,
+      "costUsd": 0.1719
+    }
+  ],
+  "totalSpend": 1.2506,
+  "pass": false
+}

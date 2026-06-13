@@ -1,5 +1,46 @@
 # Changelog
 
+## V0.1.0 — June 12, 2026 — campaign run 2: the named gap, not the claim
+
+The 10/10 plan's finish line is two green campaign days. Run 2 (the v0.0.9
+tree, unchanged, hours after run 1 — the plan asks for different days; the
+caveat is noted, and the verdict made it moot): **FAIL**.
+
+| | run 1 (green) | run 2 |
+| --- | --- | --- |
+| mandarin | 6 / drift 2 | 7 / drift 1 |
+| cs-python | **8 / drift 0** | **blocked** (P0: the literal word "placeholder" in a plan) |
+| geology | 6 / drift 2 | 6 / drift 2 |
+| world-lit | 7 / drift 2 | **6 / drift 3 ✗** (S4 quiz fell back to compiled → judged 2) |
+| art-history | 6 / drift 2 | 6 / drift 2 |
+| intro-philosophy | 7 / drift 2 | 7 / drift 2 |
+
+**The named gap — what the corpus now proves, archived in
+`packages/crucible/corpus/`:**
+1. **The 10/10 claim is NOT made.** The bar is judge ≥ 9 per artifact class
+   with none below 8, twice. The candidate sits at judge 6–8 with a
+   recurring texture complaint the judges phrase identically across all six
+   courses: weekly assessments render as N near-identical rows, lab/drill
+   lesson activities stay templated, study guides echo the lesson.
+2. **Variance is now the dominant failure mode** — the SAME tree passed and
+   failed. Both run-2 failures were sampling draws landing on known thin
+   ice: Pass C fallback rates of 7–9/15 on cs-python and mandarin mean a
+   judged quiz is one bad draw from compiled items (which can judge 2), and
+   one model phrase ("placeholder") in one activity was a P0. The fix
+   shipped here: the literal word joins the W3 token lints on voice AND
+   Pass D. The deeper fix is the next iteration's headline: **Pass C
+   reliability under variance** (distractor-vocabulary retry guidance,
+   compiled-item floor quality) and the assessment-table texture.
+
+V0.1.0 is the honest milestone the plan's own row anticipated ("the named
+gap and another iteration"): the harness, corpus, gates, flywheel, and
+eleven genome disciplines are real and shipping; the last mile from
+6–8 to 9 is named, measured, and funded by a $0.21/course campaign that
+runs on one command:
+`pnpm crucible -- --courses campaign --real --voice --judge`.
+
+108 tests green.
+
 ## V0.0.9 — June 12, 2026
 
 Workstream F of [the 10/10 plan](docs/PLAN-10-OF-10.md): measurement that
